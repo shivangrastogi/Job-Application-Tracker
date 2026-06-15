@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/firebase_service.dart';
+import '../services/cloud_sync_service.dart';
 import 'applications_provider.dart';
 
 // ── Auth state stream ──────────────────────────────────────────────
@@ -34,8 +35,21 @@ class SyncNotifier extends StateNotifier<SyncState> {
   }
 
   Future<void> signOut() async {
+    state = const SyncState(
+        status: SyncStatus.syncing, message: 'Backing up to cloud…');
+    // Back up local data to Firestore BEFORE it gets cleared on sign-out, so
+    // nothing that hasn't synced yet is lost. If the backup fails (blocked by
+    // security rules, offline, …) keep the local copy on this device instead
+    // of wiping it.
+    final result = await FirebaseService.pushAll();
+    await CloudSyncService.stop(clearLocal: result.ok);
     await FirebaseService.signOut();
-    state = const SyncState();
+    state = result.ok
+        ? const SyncState()
+        : const SyncState(
+            status: SyncStatus.error,
+            message:
+                'Signed out, but cloud backup failed — your data is kept on this device.');
   }
 
   Future<void> push() async {

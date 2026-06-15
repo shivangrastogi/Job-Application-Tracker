@@ -370,7 +370,7 @@ class _SignedInView extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Sign out?'),
         content: const Text(
-            'Your local data stays on this device. Sign in again anytime to sync.'),
+            "We'll back up your data to the cloud first, then sign out. Sign in again anytime to restore it."),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),

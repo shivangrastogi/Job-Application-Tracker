@@ -38,9 +38,24 @@ export function DataProvider({ children }) {
   }, [user]);
 
   // ---- low-level write helpers ----
+  // Surface write/delete failures instead of swallowing them. Firestore uses
+  // "latency compensation": a rejected write still shows locally for the
+  // session, then vanishes on refresh — so a silent failure looks like data
+  // "disappearing". A permission error here ("Missing or insufficient
+  // permissions") means your security rules don't cover this collection.
   const ref = (name, id) => doc(db, 'users', user.uid, name, id);
-  const put = (name, obj) => setDoc(ref(name, obj.id), obj);
-  const remove = (name, id) => deleteDoc(ref(name, id));
+  const put = (name, obj) =>
+    setDoc(ref(name, obj.id), obj).catch((e) => {
+      console.error(`[AppliTrack] failed to save to "${name}":`, e);
+      alert(`Couldn't save to the cloud ("${name}"):\n${e.message}`);
+      throw e;
+    });
+  const remove = (name, id) =>
+    deleteDoc(ref(name, id)).catch((e) => {
+      console.error(`[AppliTrack] failed to delete from "${name}":`, e);
+      alert(`Couldn't delete from the cloud ("${name}"):\n${e.message}`);
+      throw e;
+    });
 
   // ---- timeline ----
   const addTimeline = (applicationId, type, description, extra = {}) =>

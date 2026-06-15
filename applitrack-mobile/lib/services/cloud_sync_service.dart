@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'firebase_service.dart';
 
 /// Keeps local Hive data and the user's Firestore in sync automatically.
@@ -12,6 +13,9 @@ import 'firebase_service.dart';
 class CloudSyncService {
   static final List<StreamSubscription> _subs = [];
   static bool _running = false;
+
+  /// Last cloud-write failure (e.g. permission denied), for surfacing in the UI.
+  static String? lastError;
 
   static bool get isRunning => _running;
 
@@ -32,17 +36,28 @@ class CloudSyncService {
       _subs.add(box.watch().listen((event) {
         if (!FirebaseService.isSignedIn) return;
         final id = event.key.toString();
-        if (event.deleted) {
-          FirebaseService.deleteDoc(collection, id);
-        } else if (event.value is Map) {
-          FirebaseService.upsert(
-              collection, id, Map<String, dynamic>.from(event.value as Map));
-        }
+        final op = event.deleted
+            ? FirebaseService.deleteDoc(collection, id)
+            : (event.value is Map
+                ? FirebaseService.upsert(collection, id,
+                    Map<String, dynamic>.from(event.value as Map))
+                : Future<void>.value());
+        // Don't let a failed cloud write vanish silently — surface it so a
+        // rules/permissions problem is diagnosable instead of looking like
+        // data that "didn't save".
+        op.catchError((Object e) {
+          lastError = 'Cloud sync failed for $collection/$id: $e';
+          debugPrint('[AppliTrack] $lastError');
+        });
       }));
     }
   }
 
   static Future<void> stop({bool clearLocal = true}) async {
+    // Already stopped — ignore. (The auth listener fires stop() on sign-out too,
+    // after signOut() has already stopped with its own clearLocal decision; this
+    // guard stops that second call from wiping data we chose to preserve.)
+    if (!_running && _subs.isEmpty) return;
     for (final s in _subs) {
       await s.cancel();
     }
