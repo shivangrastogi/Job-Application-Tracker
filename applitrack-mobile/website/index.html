@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppliTrack — Hunt jobs like it's your full-time job</title>
+  <meta name="description" content="AppliTrack pulls live openings from 40+ top companies, tracks every application from wishlist to offer, and keeps you on pace with daily goals — all on your phone." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="AppliTrack — the job-hunt command center" />
+  <meta property="og:description" content="Live job sync, daily goals, referral tracking, and a full pipeline — built for the grind." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- texture overlays -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <!-- ───────────────────────── NAV ───────────────────────── -->
+  <header class="nav" id="top">
+    <a class="brand" href="#top" aria-label="AppliTrack home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M4 13l5 5L20 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="brand-name">AppliTrack</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#sync">Job sync</a>
+      <a href="#how">How it works</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a href="#download" class="btn btn-ghost">Get the app</a>
+    </div>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <div class="mobile-menu" id="mobileMenu" hidden>
+    <a href="#features">Features</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#sync">Job sync</a>
+    <a href="#how">How it works</a>
+    <a href="#download" class="btn btn-accent">Get the app</a>
+  </div>
+
+  <main>
+    <!-- ───────────────────────── HERO ───────────────────────── -->
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow reveal">// job application tracker</p>
+        <h1 class="reveal" style="--d:1">
+          Hunt jobs like it's<br/>
+          your <span class="ital">full-time</span> job.
+        </h1>
+        <p class="lede reveal" style="--d:2">
+          AppliTrack pulls live openings from <strong>40+ top companies</strong>,
+          tracks every application from <em>wishlist</em> to <em>offer</em>, and keeps
+          you on pace with daily goals — all on your phone.
+        </p>
+        <div class="hero-actions reveal" style="--d:3">
+          <a href="#download" class="btn btn-accent">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 20.5v-17c0-.6.3-1 .8-1.3l10 8.8-10 8.8c-.5-.3-.8-.7-.8-1.3zM16.8 14.8L6.2 21l8.4-7.4 2.2 1.2zM20.5 12c0 .5-.3 1-.8 1.3l-2.3 1.3-2.5-2.6 2.5-2.6 2.3 1.3c.5.3.8.8.8 1.3zM6.2 3L16.8 9.2l-2.2 1.2L6.2 3z"/></svg>
+            Download for Android
+          </a>
+          <a href="#features" class="btn btn-line">Explore features</a>
+        </div>
+
+        <ul class="hero-stats reveal" style="--d:4" aria-label="Highlights">
+          <li><b>100</b><span>/day goals</span></li>
+          <li><b>8</b><span>live job sources</span></li>
+          <li><b>40+</b><span>companies</span></li>
+          <li><b>0</b><span>spreadsheets</span></li>
+        </ul>
+      </div>
+
+      <!-- ── CSS phone mockup of the app dashboard ── -->
+      <div class="hero-device reveal" style="--d:3" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="app-top">
+              <span class="app-title">AppliTrack</span>
+              <span class="app-dots"><i></i><i></i></span>
+            </div>
+
+            <div class="stat-row">
+              <div class="stat-card">
+                <div class="stat-ic ic-1">▦</div>
+                <b>247</b><small>Total</small>
+              </div>
+              <div class="stat-card">
+                <div class="stat-ic ic-2">◷</div>
+                <b>38</b><small>Active</small>
+              </div>
+            </div>
+
+            <div class="goal-card">
+              <div class="goal-head">
+                <span>Applications today</span>
+                <span class="goal-num"><b>73</b>/100</span>
+              </div>
+              <div class="goal-bar"><i style="--w:73%"></i></div>
+            </div>
+
+            <p class="panel-label">Your pipeline</p>
+            <div class="mini-pipe">
+              <div class="mp-row"><span>Wishlist</span><i class="mp-fill" style="--w:90%;--c:#9aa0a6"></i><b>54</b></div>
+              <div class="mp-row"><span>Applied</span><i class="mp-fill" style="--w:70%;--c:#5b9dff"></i><b>41</b></div>
+              <div class="mp-row"><span>Phone</span><i class="mp-fill" style="--w:42%;--c:#22d3ee"></i><b>18</b></div>
+              <div class="mp-row"><span>Tech</span><i class="mp-fill" style="--w:28%;--c:#fb923c"></i><b>11</b></div>
+              <div class="mp-row"><span>Onsite</span><i class="mp-fill" style="--w:16%;--c:#a78bfa"></i><b>6</b></div>
+              <div class="mp-row"><span>Offer</span><i class="mp-fill" style="--w:9%;--c:#34d399"></i><b>3</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="device-glow"></div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── MARQUEE ───────────────────────── -->
+    <section class="marquee" aria-label="Companies you can sync">
+      <div class="marquee-track">
+        <span>Amazon</span><span>Google</span><span>Stripe</span><span>NVIDIA</span>
+        <span>Adobe</span><span>Microsoft</span><span>Databricks</span><span>Figma</span>
+        <span>Coinbase</span><span>Salesforce</span><span>Cloudflare</span><span>PhonePe</span>
+        <span>Flipkart</span><span>OpenAI</span><span>MongoDB</span>
+        <!-- duplicate for seamless loop -->
+        <span aria-hidden="true">Amazon</span><span aria-hidden="true">Google</span><span aria-hidden="true">Stripe</span><span aria-hidden="true">NVIDIA</span>
+        <span aria-hidden="true">Adobe</span><span aria-hidden="true">Microsoft</span><span aria-hidden="true">Databricks</span><span aria-hidden="true">Figma</span>
+        <span aria-hidden="true">Coinbase</span><span aria-hidden="true">Salesforce</span><span aria-hidden="true">Cloudflare</span><span aria-hidden="true">PhonePe</span>
+        <span aria-hidden="true">Flipkart</span><span aria-hidden="true">OpenAI</span><span aria-hidden="true">MongoDB</span>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── FEATURES ───────────────────────── -->
+    <section class="features" id="features">
+      <div class="section-head reveal">
+        <p class="eyebrow">// what's inside</p>
+        <h2>Everything the job grind needs — <span class="ital">nothing it doesn't.</span></h2>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature reveal big">
+          <span class="f-tag">01 · live sync</span>
+          <h3>Career pages, decoded.</h3>
+          <p>Add a company and AppliTrack reads its careers page through the ATS underneath — Greenhouse, Lever, Ashby, Workday, Amazon Jobs and more — then normalises every listing so you can filter by role, location and remote.</p>
+          <div class="f-chips">
+            <span>Greenhouse</span><span>Lever</span><span>Ashby</span><span>Workday</span><span>Amazon</span><span>SmartRecruiters</span>
+          </div>
+        </article>
+
+        <article class="feature reveal">
+          <span class="f-tag">02 · goals</span>
+          <h3>100 a day? Done.</h3>
+          <p>Set daily, weekly or monthly targets. Live progress bars track applications logged, submitted and interviews — with a nightly nudge so you never break the streak.</p>
+        </article>
+
+        <article class="feature reveal">
+          <span class="f-tag">03 · referrals</span>
+          <h3>Never lose a referral.</h3>
+          <p>Save your referral groups and Google Forms, log each request, and pre-fill forms with your details in one tap. Convert a referral straight into a tracked application.</p>
+        </article>
+
+        <article class="feature reveal">
+          <span class="f-tag">04 · analytics</span>
+          <h3>See your funnel.</h3>
+          <p>Wishlist → Applied → Phone → Tech → Onsite → Offer. Watch your conversion, response rate and where applications stall — so you fix the leak, not the symptom.</p>
+        </article>
+
+        <article class="feature reveal">
+          <span class="f-tag">05 · alerts</span>
+          <h3>New jobs, the second they post.</h3>
+          <p>AppliTrack quietly checks your tracked companies and pings you when fresh openings appear — no refresh, no FOMO.</p>
+        </article>
+
+        <article class="feature reveal">
+          <span class="f-tag">06 · private</span>
+          <h3>Local-first. Your data.</h3>
+          <p>Everything lives on your device by default, with optional cloud sync. No résumé farms, no recruiter spam — just your hunt, your way.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── PIPELINE ───────────────────────── -->
+    <section class="pipeline" id="pipeline">
+      <div class="pipe-copy reveal">
+        <p class="eyebrow">// the pipeline</p>
+        <h2>From a <span class="ital">someday</span> wishlist to a signed offer.</h2>
+        <p class="lede">
+          Every opportunity moves through one clear funnel. Drag a card, log a status,
+          and AppliTrack writes the timeline for you — interviews, notes, follow-ups and all.
+        </p>
+        <a href="#download" class="btn btn-accent">Start tracking</a>
+      </div>
+
+      <div class="pipe-viz reveal" id="pipeViz" aria-hidden="true">
+        <div class="pipe-stage" style="--w:100%;--c:#9aa0a6"><span>Wishlist</span><b>54</b></div>
+        <div class="pipe-stage" style="--w:78%;--c:#5b9dff"><span>Applied</span><b>41</b></div>
+        <div class="pipe-stage" style="--w:55%;--c:#22d3ee"><span>Phone screen</span><b>18</b></div>
+        <div class="pipe-stage" style="--w:40%;--c:#fb923c"><span>Technical</span><b>11</b></div>
+        <div class="pipe-stage" style="--w:26%;--c:#a78bfa"><span>Onsite</span><b>6</b></div>
+        <div class="pipe-stage" style="--w:15%;--c:#facc15"><span>Offer</span><b>3</b></div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── JOB SYNC ───────────────────────── -->
+    <section class="sync" id="sync">
+      <div class="section-head reveal center">
+        <p class="eyebrow">// the catalog</p>
+        <h2>40+ top companies. <span class="ital">One tap.</span></h2>
+        <p class="lede">Start from a built-in catalog of India &amp; US-remote employers — or paste any careers URL and let AppliTrack figure out the rest.</p>
+      </div>
+
+      <div class="catalog reveal">
+        <div class="cat-col">
+          <p class="cat-head">Big Tech</p>
+          <span>Amazon</span><span>Google</span><span>Microsoft</span><span>Apple</span><span>Meta</span><span>Netflix</span>
+        </div>
+        <div class="cat-col">
+          <p class="cat-head">Product / SaaS</p>
+          <span>Stripe</span><span>Databricks</span><span>Figma</span><span>Notion</span><span>Salesforce</span><span>Adobe</span>
+        </div>
+        <div class="cat-col">
+          <p class="cat-head">Fintech</p>
+          <span>Coinbase</span><span>Robinhood</span><span>Ramp</span><span>PhonePe</span><span>CRED</span>
+        </div>
+        <div class="cat-col">
+          <p class="cat-head">India &amp; Hardware</p>
+          <span>NVIDIA</span><span>Flipkart</span><span>Swiggy</span><span>Zomato</span><span>Razorpay</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── HOW ───────────────────────── -->
+    <section class="how" id="how">
+      <div class="section-head reveal">
+        <p class="eyebrow">// three steps</p>
+        <h2>Set up in a minute. Run it for months.</h2>
+      </div>
+      <ol class="steps">
+        <li class="reveal">
+          <span class="step-no">01</span>
+          <h3>Add your companies</h3>
+          <p>Pick from the catalog or paste a careers link. AppliTrack detects the platform and connects.</p>
+        </li>
+        <li class="reveal">
+          <span class="step-no">02</span>
+          <h3>Pull &amp; filter jobs</h3>
+          <p>Live listings stream in. Filter by role, location and remote, then track the ones that fit.</p>
+        </li>
+        <li class="reveal">
+          <span class="step-no">03</span>
+          <h3>Track to the offer</h3>
+          <p>Move cards through your pipeline, log interviews and referrals, and hit your daily goal.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ───────────────────────── CTA ───────────────────────── -->
+    <section class="cta" id="download">
+      <div class="cta-inner reveal">
+        <h2>Your next offer is <span class="ital">in the pipeline.</span></h2>
+        <p>Stop losing applications in your inbox and your head. Put the whole hunt in one place.</p>
+        <div class="hero-actions">
+          <a href="#" class="btn btn-accent">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 20.5v-17c0-.6.3-1 .8-1.3l10 8.8-10 8.8c-.5-.3-.8-.7-.8-1.3zM16.8 14.8L6.2 21l8.4-7.4 2.2 1.2zM20.5 12c0 .5-.3 1-.8 1.3l-2.3 1.3-2.5-2.6 2.5-2.6 2.3 1.3c.5.3.8.8.8 1.3zM6.2 3L16.8 9.2l-2.2 1.2L6.2 3z"/></svg>
+            Download for Android
+          </a>
+          <a href="#features" class="btn btn-line">See the features</a>
+        </div>
+        <p class="cta-note">Free · Local-first · No account required to start</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ───────────────────────── FOOTER ───────────────────────── -->
+  <footer class="footer">
+    <div class="foot-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M4 13l5 5L20 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span>AppliTrack</span>
+    </div>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="#features">Features</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#sync">Job sync</a>
+      <a href="#how">How it works</a>
+    </nav>
+    <p class="foot-copy">© <span id="year">2026</span> AppliTrack — Track every opportunity, from wishlist to offer.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

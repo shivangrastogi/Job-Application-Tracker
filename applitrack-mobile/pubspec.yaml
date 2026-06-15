@@ -1,0 +1,85 @@
+name: applitrack
+description: Job Application Tracker — track every opportunity from wishlist to offer.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Local storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Navigation
+  go_router: ^14.6.3
+
+  # Models
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Charts
+  fl_chart: ^0.70.2
+
+  # Calendar
+  table_calendar: ^3.1.2
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+  flutter_timezone: ^5.0.0
+  timezone: ^0.9.0
+
+  # Animations
+  flutter_animate: ^4.5.2
+
+  # Export & share
+  share_plus: ^10.0.1
+  pdf: ^3.11.1
+  path_provider: ^2.1.5
+
+  # Document files (resume upload / open)
+  file_picker: ^10.1.2
+  open_filex: ^4.7.0
+
+  # Utilities
+  url_launcher: ^6.3.1
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  collection: ^1.19.1
+  shared_preferences: ^2.3.5
+
+  # Notification listener (reads Naukri/LinkedIn/Indeed notifications)
+  notification_listener_service: ^0.3.5
+
+  # HTTP client (Gmail API calls)
+  http: ^1.2.2
+
+  # Firebase cloud sync
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  google_sign_in: ^6.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.13
+  freezed: ^3.0.0
+  json_serializable: ^6.8.0
+  riverpod_generator: ^2.6.1
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

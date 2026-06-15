@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "453229654159",
+    "project_id": "jarvis-calendar-469216",
+    "storage_bucket": "jarvis-calendar-469216.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:453229654159:android:0e2d1a86abd510a1b440fa",
+        "android_client_info": {
+          "package_name": "com.applitrack.applitrack"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "453229654159-3535049ainajvco65ss56il4m6ta1gav.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.applitrack.applitrack",
+            "certificate_hash": "a6eee0ba33feff961f6da33809627adc8bd3f3b8"
+          }
+        },
+        {
+          "client_id": "453229654159-i5lfvf309l1r2aiqepj04gobggr78sfd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNPh12ECXoXSagSWlX6EcwaoHh9f8jwFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "453229654159-i5lfvf309l1r2aiqepj04gobggr78sfd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "453229654159-o939f8r1rht95d73iejr8u18jhs15poc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.applitrack.applitrack"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
