@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/applications_provider.dart';
+import '../../providers/documents_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../core/constants/enums.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/resume_picker_field.dart';
 
 class AddApplicationScreen extends ConsumerStatefulWidget {
   const AddApplicationScreen({super.key});
@@ -26,9 +28,22 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
   JobSource _source = JobSource.other;
   int _priority = 3;
   bool _loading = false;
+  String? _resumeId;
+  bool _coverLetterUsed = false;
 
   double? _salaryMin;
   double? _salaryMax;
+
+  @override
+  void initState() {
+    super.initState();
+    // Preselect the default resume (if it still exists in the vault).
+    final defaultId = ref.read(settingsNotifierProvider).defaultResumeId;
+    if (defaultId != null &&
+        ref.read(documentsNotifierProvider.notifier).getById(defaultId) != null) {
+      _resumeId = defaultId;
+    }
+  }
 
   @override
   void dispose() {
@@ -57,6 +72,8 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
             source: _source,
             priority: _priority,
             notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+            resumeVersionId: _resumeId,
+            coverLetterUsed: _coverLetterUsed,
           );
       if (settings.notifyFollowUp && _status.isActive) {
         await NotificationService.scheduleFollowUpNudge(
@@ -96,27 +113,41 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Company
+            // Job URL — the only required field, so you can capture a job fast
+            // and fill in company / role / the rest later.
             TextFormField(
-              controller: _companyCtrl,
+              controller: _urlCtrl,
+              autofocus: true,
               decoration: const InputDecoration(
-                labelText: 'Company *',
-                prefixIcon: Icon(Icons.business_outlined),
+                labelText: 'Job URL *',
+                hintText: 'Paste the link now, add details later',
+                prefixIcon: Icon(Icons.link_outlined),
               ),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+              keyboardType: TextInputType.url,
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Paste the job link' : null,
             ),
             const SizedBox(height: 12),
 
-            // Role
+            // Company (optional)
+            TextFormField(
+              controller: _companyCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Company',
+                prefixIcon: Icon(Icons.business_outlined),
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+
+            // Role (optional)
             TextFormField(
               controller: _roleCtrl,
               decoration: const InputDecoration(
-                labelText: 'Role / Job Title *',
+                labelText: 'Role / Job Title',
                 prefixIcon: Icon(Icons.work_outline),
               ),
               textCapitalization: TextCapitalization.words,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 20),
 
@@ -200,17 +231,6 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
                 prefixIcon: Icon(Icons.location_on_outlined),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // Job URL
-            TextFormField(
-              controller: _urlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Job URL',
-                prefixIcon: Icon(Icons.link_outlined),
-              ),
-              keyboardType: TextInputType.url,
-            ),
             const SizedBox(height: 20),
 
             // Salary
@@ -235,6 +255,21 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
               ],
             ),
             const SizedBox(height: 20),
+
+            // Resume used
+            _FieldLabel('Resume'),
+            ResumePickerField(
+              value: _resumeId,
+              onChanged: (id) => setState(() => _resumeId = id),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Cover letter sent'),
+              value: _coverLetterUsed,
+              onChanged: (v) => setState(() => _coverLetterUsed = v),
+            ),
+            const SizedBox(height: 12),
 
             // Notes
             TextFormField(

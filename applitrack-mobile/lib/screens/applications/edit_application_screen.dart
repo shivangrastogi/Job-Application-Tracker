@@ -28,6 +28,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
   WorkType _workType = WorkType.onsite;
   JobSource _source = JobSource.other;
   String? _resumeId;
+  bool _coverLetterUsed = false;
   int _priority = 3;
   bool _loading = false;
   bool _initialized = false;
@@ -61,6 +62,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
     _workType = app.workType;
     _source = app.source;
     _resumeId = app.resumeVersionId;
+    _coverLetterUsed = app.coverLetterUsed;
     _priority = app.priority;
     _salaryMin = app.salaryMin;
     _salaryMax = app.salaryMax;
@@ -89,6 +91,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
                   ? null
                   : _sourceNameCtrl.text.trim(),
               resumeVersionId: _resumeId,
+              coverLetterUsed: _coverLetterUsed,
               priority: _priority,
               notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
             ),
@@ -205,6 +208,13 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
               value: _resumeId,
               onChanged: (id) => setState(() => _resumeId = id),
               label: 'Resume used',
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Cover letter sent'),
+              value: _coverLetterUsed,
+              onChanged: (v) => setState(() => _coverLetterUsed = v),
             ),
             const SizedBox(height: 20),
             _FieldLabel('Work Type'),

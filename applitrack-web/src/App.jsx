@@ -11,6 +11,7 @@ import Catalog from './pages/Catalog.jsx';
 import Goals from './pages/Goals.jsx';
 import Referrals from './pages/Referrals.jsx';
 import Interviews from './pages/Interviews.jsx';
+import Resumes from './pages/Resumes.jsx';
 import Analytics from './pages/Analytics.jsx';
 import Profile from './pages/Profile.jsx';
 
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/goals" element={<Goals />} />
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/interviews" element={<Interviews />} />
+          <Route path="/resumes" element={<Resumes />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Navigate to="/" replace />} />

@@ -12,6 +12,7 @@ import '../../providers/documents_provider.dart';
 import '../../providers/interviews_provider.dart';
 import '../../providers/contacts_provider.dart';
 import '../../models/job_application.dart';
+import '../../core/utils/app_display.dart';
 import '../../models/interview.dart';
 import '../../models/contact.dart';
 import '../../models/timeline_event.dart';
@@ -40,7 +41,7 @@ class ApplicationDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(app.company),
+        title: Text(app.displayCompany),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -68,13 +69,13 @@ class ApplicationDetailScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(app.role,
+                            Text(app.displayRole,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleLarge
                                     ?.copyWith(fontWeight: FontWeight.w800)),
                             const SizedBox(height: 2),
-                            Text(app.company,
+                            Text(app.displayCompany,
                                 style: TextStyle(
                                     fontSize: 14,
                                     color: cs.onSurface.withValues(alpha: 0.6))),

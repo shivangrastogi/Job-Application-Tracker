@@ -1,9 +1,12 @@
 import { useData } from '../data/store.jsx';
 import { STATUS_KEYS, PIPELINE_STAGES, statusColor, statusLabel, JobSource } from '../lib/enums';
+import { resumeStats, coverLetterStats, MIN_RESUME_SAMPLE } from '../lib/resumeAnalytics';
 
 export default function Analytics() {
-  const { applications: apps } = useData();
+  const { applications: apps, documents } = useData();
   const total = apps.length;
+  const resumes = resumeStats(apps, documents || []);
+  const coverLetters = coverLetterStats(apps);
 
   const countBy = (keyFn, keys) => {
     const m = Object.fromEntries(keys.map((k) => [k, 0]));
@@ -66,6 +69,65 @@ export default function Analytics() {
       </div>
 
       <section className="card">
+        <h2 className="card-title">Resume performance</h2>
+        {resumes.length === 0 ? (
+          <p className="muted">Attach a resume to your applications (on the app form) to compare how each version converts.</p>
+        ) : (
+          <div className="resume-perf">
+            <div className="rp-row rp-head">
+              <span className="rp-name">Resume</span>
+              <span>Sent</span>
+              <span>Response</span>
+              <span>Interview</span>
+              <span>Offer</span>
+            </div>
+            {resumes.map((r) => (
+              <div className={'rp-row' + (r.lowData ? ' rp-low' : '')} key={r.id}>
+                <span className="rp-name">
+                  {r.name}
+                  {r.lowData && <span className="rp-tag" title={`Fewer than ${MIN_RESUME_SAMPLE} applications — not enough data to compare yet`}>low data</span>}
+                </span>
+                <b>{r.sent}</b>
+                <RateCell value={r.responseRate} count={r.responded} />
+                <RateCell value={r.interviewRate} count={r.interviewed} />
+                <RateCell value={r.offerRate} count={r.offered} />
+              </div>
+            ))}
+            <p className="muted small" style={{ marginTop: 10 }}>
+              Rates are share of <b>sent</b> applications (excludes wishlist). Resumes under {MIN_RESUME_SAMPLE} applications are marked <b>low data</b> — give them more applications before trusting the numbers.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {coverLetters.length > 0 && (
+        <section className="card">
+          <h2 className="card-title">Cover letter impact</h2>
+          <div className="resume-perf">
+            <div className="rp-row rp-head">
+              <span className="rp-name">Applications</span>
+              <span>Sent</span>
+              <span>Response</span>
+              <span>Interview</span>
+              <span>Offer</span>
+            </div>
+            {coverLetters.map((r) => (
+              <div className="rp-row" key={r.id}>
+                <span className="rp-name">{r.name}</span>
+                <b>{r.sent}</b>
+                <RateCell value={r.responseRate} count={r.responded} />
+                <RateCell value={r.interviewRate} count={r.interviewed} />
+                <RateCell value={r.offerRate} count={r.offered} />
+              </div>
+            ))}
+            <p className="muted small" style={{ marginTop: 10 }}>
+              Tick “Cover letter sent” on applications to see whether it lifts your interview rate.
+            </p>
+          </div>
+        </section>
+      )}
+
+      <section className="card">
         <h2 className="card-title">Status breakdown</h2>
         <div className="status-breakdown">
           {STATUS_KEYS.filter((s) => byStatus[s] > 0).map((s) => (
@@ -82,4 +144,10 @@ export default function Analytics() {
 
 function KPI({ label, value }) {
   return <div className="stat"><b>{value}</b><small>{label}</small></div>;
+}
+
+function RateCell({ value, count }) {
+  // Green-ish as the rate climbs, so strong resumes pop out of the table.
+  const color = value >= 50 ? '#22C55E' : value >= 25 ? '#F59E0B' : '#9E9E9E';
+  return <span title={`${count} application(s)`}><b style={{ color }}>{value}%</b></span>;
 }

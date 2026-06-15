@@ -111,6 +111,33 @@ class AnalyticsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Resume performance — which resume is converting best
+          if (summary.byResume.isNotEmpty) ...[
+            _SectionTitle('Resume Performance'),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _ResumePerformance(resumes: summary.byResume),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Cover letter impact — does sending one lift the interview rate?
+          if (summary.byCoverLetter.isNotEmpty) ...[
+            _SectionTitle('Cover Letter Impact'),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _ResumePerformance(
+                    resumes: summary.byCoverLetter, showLowDataNote: false),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
           // Work type grid
           _SectionTitle('By Work Type'),
           const SizedBox(height: 12),
@@ -524,5 +551,116 @@ class _SourcePieChartState extends State<_SourcePieChart> {
         ),
       ],
     );
+  }
+}
+
+// ───────────────────────── Resume performance ───────────────────────
+
+class _ResumePerformance extends StatelessWidget {
+  final List<ResumeStat> resumes;
+  final bool showLowDataNote;
+  const _ResumePerformance({required this.resumes, this.showLowDataNote = true});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final headStyle = TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: cs.onSurface.withValues(alpha: 0.5));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(flex: 4, child: Text('RESUME', style: headStyle)),
+            Expanded(child: Text('SENT', style: headStyle, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text('RESP', style: headStyle, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text('INTV', style: headStyle, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text('OFFER', style: headStyle, textAlign: TextAlign.center)),
+          ],
+        ),
+        const Divider(height: 16),
+        ...resumes.map((r) => Opacity(
+              opacity: (showLowDataNote && r.lowData) ? 0.55 : 1,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(r.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                          ),
+                          if (showLowDataNote && r.lowData) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: cs.onSurface.withValues(alpha: 0.2)),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: Text('LOW DATA',
+                                  style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w700,
+                                      color:
+                                          cs.onSurface.withValues(alpha: 0.5))),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Text('${r.sent}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 13)),
+                    ),
+                    Expanded(flex: 2, child: _RateChip(rate: r.responseRate)),
+                    Expanded(flex: 2, child: _RateChip(rate: r.interviewRate)),
+                    Expanded(flex: 2, child: _RateChip(rate: r.offerRate)),
+                  ],
+                ),
+              ),
+            )),
+        const SizedBox(height: 2),
+        Text(
+          showLowDataNote
+              ? 'Share of sent applications (excludes wishlist). Resumes under '
+                  '$kMinResumeSample applications are marked low data.'
+              : 'Share of sent applications (excludes wishlist).',
+          style: TextStyle(
+              fontSize: 11, color: cs.onSurface.withValues(alpha: 0.4)),
+        ),
+      ],
+    );
+  }
+}
+
+class _RateChip extends StatelessWidget {
+  final double rate; // 0..1
+  const _RateChip({required this.rate});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (rate * 100).round();
+    final color = pct >= 50
+        ? const Color(0xFF22C55E)
+        : pct >= 25
+            ? const Color(0xFFF59E0B)
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+    return Text('$pct%',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w700, color: color));
   }
 }

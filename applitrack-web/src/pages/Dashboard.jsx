@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { useData } from '../data/store.jsx';
 import { isActiveStatus, statusColor, statusLabel, PIPELINE_STAGES, GoalMetric, GoalPeriod } from '../lib/enums';
 import { goalProgress } from '../lib/goals';
+import { resumeStats, bestResume } from '../lib/resumeAnalytics';
 
 export default function Dashboard() {
-  const { applications: apps, interviews, goals } = useData();
+  const { applications: apps, interviews, goals, documents } = useData();
+  const topResume = bestResume(resumeStats(apps, documents || []));
 
   const total = apps.length;
   const active = apps.filter((a) => isActiveStatus(a.status)).length;
@@ -40,6 +42,20 @@ export default function Dashboard() {
         <Stat label="Interviews / week" value={ivThisWeek} color="#a78bfa" icon="◆" />
         <Stat label="Offers" value={offers} color="#22c55e" icon="★" />
       </div>
+
+      {topResume && (
+        <Link to="/analytics" className="card top-resume">
+          <div className="tr-icon">★</div>
+          <div className="tr-main">
+            <small className="muted">Top resume · {topResume.sent} sent</small>
+            <b>{topResume.name}</b>
+          </div>
+          <div className="tr-rate">
+            <b>{topResume.interviewRate}%</b>
+            <small className="muted">interview rate</small>
+          </div>
+        </Link>
+      )}
 
       <div className="cols-2">
         <section className="card">

@@ -35,3 +35,20 @@ export function initials(name) {
   if (!name) return '?';
   return name.trim()[0].toUpperCase();
 }
+
+// Hostname of a job URL (without www.) — used as a friendly fallback title for
+// link-only applications that don't have a company/role filled in yet.
+export function jobHost(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+// Best label we can show for an application, even if details aren't filled yet.
+export function appTitle(a) {
+  return a.role || a.company || jobHost(a.jobUrl) || 'Untitled job';
+}

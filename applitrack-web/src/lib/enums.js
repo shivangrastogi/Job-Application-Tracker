@@ -31,6 +31,10 @@ export const JobSource = {
   company: 'Company Website', referral: 'Referral', other: 'Other',
 };
 
+export const DocumentType = {
+  resume: 'Resume', coverLetter: 'Cover Letter', portfolio: 'Portfolio', other: 'Other',
+};
+
 export const InterviewType = {
   phone: 'Phone', technical: 'Technical', behavioral: 'Behavioral',
   systemDesign: 'System Design', takeHome: 'Take-Home', hr: 'HR', final_: 'Final',

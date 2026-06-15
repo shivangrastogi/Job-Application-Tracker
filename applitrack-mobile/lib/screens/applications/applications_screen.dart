@@ -3,8 +3,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/applications_provider.dart';
+import '../../providers/documents_provider.dart';
 import '../../core/constants/enums.dart';
 import '../../core/constants/status_colors.dart';
+import '../../core/utils/app_display.dart';
+import '../../models/job_application.dart';
 
 class ApplicationsScreen extends ConsumerStatefulWidget {
   const ApplicationsScreen({super.key});
@@ -16,13 +19,26 @@ class ApplicationsScreen extends ConsumerStatefulWidget {
 class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
   bool _kanbanMode = false;
   ApplicationStatus? _filterStatus;
+  String _filterResumeId = '__all__'; // '__all__' | '__none__' | document id
 
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(applicationsNotifierProvider);
-    final filtered = _filterStatus == null
+    final resumes = ref
+        .watch(documentsNotifierProvider)
+        .where((d) => d.type == DocumentType.resume)
+        .toList();
+
+    var filtered = _filterStatus == null
         ? all
         : all.where((a) => a.status == _filterStatus).toList();
+    if (_filterResumeId != '__all__') {
+      filtered = filtered
+          .where((a) => _filterResumeId == '__none__'
+              ? a.resumeVersionId == null
+              : a.resumeVersionId == _filterResumeId)
+          .toList();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -66,9 +82,53 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
               ],
             ),
           ),
+          // Resume filter — only when there are resumes to filter by
+          if (resumes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Row(
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<String>(
+                      value: _filterResumeId,
+                      isExpanded: true,
+                      isDense: true,
+                      underline: const SizedBox(),
+                      onChanged: (v) =>
+                          setState(() => _filterResumeId = v ?? '__all__'),
+                      items: [
+                        const DropdownMenuItem(
+                            value: '__all__', child: Text('All resumes')),
+                        const DropdownMenuItem(
+                            value: '__none__', child: Text('No resume')),
+                        ...resumes.map((d) => DropdownMenuItem(
+                              value: d.id,
+                              child: Text(
+                                d.version != null && d.version!.isNotEmpty
+                                    ? '${d.name} · v${d.version}'
+                                    : d.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: filtered.isEmpty
-                ? _EmptyState(isFiltered: _filterStatus != null)
+                ? _EmptyState(
+                    isFiltered:
+                        _filterStatus != null || _filterResumeId != '__all__')
                 : _kanbanMode
                     ? _KanbanView(applications: filtered)
                     : _ListView(applications: filtered),
@@ -212,7 +272,7 @@ class _KanbanView extends StatelessWidget {
 }
 
 class _ApplicationCard extends ConsumerWidget {
-  final dynamic app;
+  final JobApplication app;
   final bool compact;
 
   const _ApplicationCard({required this.app, this.compact = false});
@@ -238,14 +298,14 @@ class _ApplicationCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          app.company,
+                          app.displayCompany,
                           style: const TextStyle(
                               fontWeight: FontWeight.w700, fontSize: 15),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          app.role,
+                          app.displayRole,
                           style: TextStyle(
                               fontSize: 13,
                               color: cs.onSurface.withValues(alpha: 0.65)),

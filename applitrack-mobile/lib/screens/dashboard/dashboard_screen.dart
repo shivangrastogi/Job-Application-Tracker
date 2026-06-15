@@ -19,6 +19,15 @@ class DashboardScreen extends ConsumerWidget {
     final activeGoals = goals.where((g) => g.goal.active).toList();
     final cs = Theme.of(context).colorScheme;
 
+    // Strongest resume with a trustworthy sample, for the spotlight card.
+    final eligibleResumes = summary.byResume
+        .where((r) => !r.lowData && r.id != '__none__' && r.interviewed > 0)
+        .toList();
+    final topResume = eligibleResumes.isEmpty
+        ? null
+        : eligibleResumes
+            .reduce((a, b) => b.interviewRate > a.interviewRate ? b : a);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AppliTrack'),
@@ -75,6 +84,74 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ).animate(delay: 60.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, end: 0),
             const SizedBox(height: 16),
+
+            // Top resume spotlight
+            if (topResume != null) ...[
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => context.push('/analytics'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22C55E).withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.star_rounded,
+                              color: Color(0xFF22C55E)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Top resume · ${topResume.sent} sent',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: cs.onSurface.withValues(alpha: 0.55)),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                topResume.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${(topResume.interviewRate * 100).round()}%',
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF22C55E)),
+                            ),
+                            Text('interview rate',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color:
+                                        cs.onSurface.withValues(alpha: 0.5))),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate(delay: 75.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, end: 0),
+              const SizedBox(height: 16),
+            ],
 
             // Quick access: Companies & Goals
             Row(

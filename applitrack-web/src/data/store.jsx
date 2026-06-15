@@ -12,7 +12,7 @@ export const useData = () => useContext(DataCtx);
 // Collections that live under users/{uid}/...  (mirrors the mobile app).
 const COLLECTIONS = [
   'applications', 'interviews', 'contacts', 'timeline',
-  'companies', 'goals', 'referral_sources', 'referrals',
+  'companies', 'goals', 'referral_sources', 'referrals', 'documents',
 ];
 
 export function DataProvider({ children }) {
@@ -67,7 +67,9 @@ export function DataProvider({ children }) {
         salaryCurrency: d.salaryCurrency || 'INR',
         source: d.source || 'other', sourceName: d.sourceName || null,
         priority: d.priority ?? 3, tags: d.tags || [],
-        notes: d.notes || null, resumeVersionId: null, coverLetterUsed: false,
+        notes: d.notes || null,
+        resumeVersionId: d.resumeVersionId || null,
+        coverLetterUsed: d.coverLetterUsed ?? false,
         createdAt: now, updatedAt: now,
       };
       await put('applications', app);
@@ -138,6 +140,17 @@ export function DataProvider({ children }) {
     updateReferral: (prev, patch) =>
       put('referrals', { ...prev, ...patch, updatedAt: nowIso() }),
     deleteReferral: (id) => remove('referrals', id),
+
+    // ---- documents (resumes / cover letters) — same shape as mobile AppDocument ----
+    addDocument: (d) => put('documents', {
+      id: uid(), name: d.name, type: d.type || 'resume',
+      version: d.version || null, content: d.content || null,
+      filePath: d.filePath || null, tags: d.tags || [],
+      createdAt: nowIso(), updatedAt: nowIso(),
+    }),
+    updateDocument: (prev, patch) =>
+      put('documents', { ...prev, ...patch, updatedAt: nowIso() }),
+    deleteDocument: (id) => remove('documents', id),
   };
 
   return <DataCtx.Provider value={api}>{children}</DataCtx.Provider>;

@@ -8,6 +8,7 @@ const NAV = [
   { to: '/companies', label: 'Companies', icon: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-3' },
   { to: '/interviews', label: 'Interviews', icon: 'M7 4v3m10-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z' },
   { to: '/referrals', label: 'Referrals', icon: 'M16 11a4 4 0 10-8 0m-2 9a6 6 0 0112 0M12 7v0' },
+  { to: '/resumes', label: 'Resumes', icon: 'M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zm6 0v6h6M9 13h6M9 17h6' },
   { to: '/goals', label: 'Goals', icon: 'M5 21V5a2 2 0 012-2h7l-1 4h5l-1 5H7' },
   { to: '/analytics', label: 'Analytics', icon: 'M4 20V10m6 10V4m6 16v-7' },
 ];

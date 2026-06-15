@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useData } from '../data/store.jsx';
 import Modal from '../components/Modal.jsx';
 import { ApplicationStatus, STATUS_KEYS, PIPELINE_STAGES, statusColor, statusLabel, WorkType, JobSource } from '../lib/enums';
-import { relDate } from '../lib/format';
+import { relDate, appTitle } from '../lib/format';
+import { getDefaultResumeId } from '../lib/resumePref';
 
 export default function Applications() {
   const data = useData();
@@ -10,17 +11,23 @@ export default function Applications() {
   const [filter, setFilter] = useState('all');
   const [kanban, setKanban] = useState(false);
   const [query, setQuery] = useState('');
+  const [resumeFilter, setResumeFilter] = useState('all');
   const [editing, setEditing] = useState(null); // app object or 'new'
+
+  const resumeDocs = (data.documents || []).filter((d) => (d.type || 'resume') === 'resume');
 
   const filtered = useMemo(() => {
     let list = apps;
     if (filter !== 'all') list = list.filter((a) => a.status === filter);
+    if (resumeFilter !== 'all') {
+      list = list.filter((a) => (resumeFilter === 'none' ? !a.resumeVersionId : a.resumeVersionId === resumeFilter));
+    }
     if (query) {
       const q = query.toLowerCase();
       list = list.filter((a) => a.company?.toLowerCase().includes(q) || a.role?.toLowerCase().includes(q));
     }
     return [...list].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-  }, [apps, filter, query]);
+  }, [apps, filter, query, resumeFilter]);
 
   return (
     <div className="page">
@@ -34,6 +41,15 @@ export default function Applications() {
 
       <div className="toolbar">
         <input className="search" placeholder="Search company or role" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {resumeDocs.length > 0 && (
+          <select className="search toolbar-select" value={resumeFilter} onChange={(e) => setResumeFilter(e.target.value)}>
+            <option value="all">All resumes</option>
+            <option value="none">No resume</option>
+            {resumeDocs.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}{d.version ? ` · v${d.version}` : ''}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {!kanban && (
@@ -64,10 +80,10 @@ export default function Applications() {
         <div className="list">
           {filtered.map((a) => (
             <div className="row-card" key={a.id} onClick={() => setEditing(a)}>
-              <span className="avatar">{(a.company || '?')[0].toUpperCase()}</span>
+              <span className="avatar">{(a.company || a.role || '?')[0].toUpperCase()}</span>
               <div className="row-main">
-                <b>{a.role}</b>
-                <span className="muted">{a.company}{a.location ? ` · ${a.location}` : ''}</span>
+                <b>{appTitle(a)}</b>
+                <span className="muted">{a.company || 'Tap to add details'}{a.location ? ` · ${a.location}` : ''}</span>
               </div>
               <span className="badge" style={{ color: statusColor(a.status), background: statusColor(a.status) + '22' }}>{statusLabel(a.status)}</span>
               <span className="muted small">{relDate(a.updatedAt)}</span>
@@ -90,7 +106,7 @@ export default function Applications() {
 function KCard({ app, onClick }) {
   return (
     <div className="kcard" onClick={onClick}>
-      <b>{app.role}</b>
+      <b>{appTitle(app)}</b>
       <span className="muted">{app.company}</span>
     </div>
   );
@@ -106,6 +122,7 @@ function Chip({ active, color, children, onClick }) {
 }
 
 function JobModal({ app, onClose, data }) {
+  const resumes = (data.documents || []).filter((d) => (d.type || 'resume') === 'resume');
   const [f, setF] = useState(() => ({
     company: app?.company || '', role: app?.role || '', status: app?.status || 'wishlist',
     location: app?.location || '', workType: app?.workType || 'onsite',
@@ -113,12 +130,15 @@ function JobModal({ app, onClose, data }) {
     appliedDate: app?.appliedDate ? app.appliedDate.slice(0, 10) : '',
     salaryMin: app?.salaryMin ?? '', salaryMax: app?.salaryMax ?? '',
     priority: app?.priority ?? 3, notes: app?.notes || '',
+    resumeVersionId: app ? (app.resumeVersionId || '') : (getDefaultResumeId() || ''),
+    coverLetterUsed: app?.coverLetterUsed ?? false,
   }));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const setBool = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.checked }));
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
-    if (!f.company.trim() || !f.role.trim()) return;
+    if (!f.jobUrl.trim()) return;
     setBusy(true);
     const patch = {
       company: f.company.trim(), role: f.role.trim(), status: f.status,
@@ -128,6 +148,8 @@ function JobModal({ app, onClose, data }) {
       salaryMin: f.salaryMin === '' ? null : Number(f.salaryMin),
       salaryMax: f.salaryMax === '' ? null : Number(f.salaryMax),
       priority: Number(f.priority), notes: f.notes.trim() || null,
+      resumeVersionId: f.resumeVersionId || null,
+      coverLetterUsed: f.coverLetterUsed,
     };
     if (app) await data.updateApplication(app, patch);
     else await data.addApplication(patch);
@@ -139,8 +161,11 @@ function JobModal({ app, onClose, data }) {
   return (
     <Modal title={app ? 'Edit application' : 'Add application'} onClose={onClose} wide>
       <div className="form-grid">
-        <Field label="Company *"><input value={f.company} onChange={set('company')} /></Field>
-        <Field label="Role *"><input value={f.role} onChange={set('role')} /></Field>
+        <Field label="Job URL *" full>
+          <input value={f.jobUrl} onChange={set('jobUrl')} placeholder="https://… (paste the link, fill the rest later)" autoFocus />
+        </Field>
+        <Field label="Company"><input value={f.company} onChange={set('company')} /></Field>
+        <Field label="Role"><input value={f.role} onChange={set('role')} /></Field>
         <Field label="Status">
           <select value={f.status} onChange={set('status')}>
             {STATUS_KEYS.map((s) => <option key={s} value={s}>{ApplicationStatus[s].label}</option>)}
@@ -158,17 +183,28 @@ function JobModal({ app, onClose, data }) {
             {Object.entries(JobSource).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
+        <Field label="Resume used">
+          <select value={f.resumeVersionId} onChange={set('resumeVersionId')}>
+            <option value="">No resume</option>
+            {resumes.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}{d.version ? ` · v${d.version}` : ''}</option>
+            ))}
+          </select>
+        </Field>
+        <label className="field field-check">
+          <input type="checkbox" checked={f.coverLetterUsed} onChange={setBool('coverLetterUsed')} />
+          <span>Cover letter sent</span>
+        </label>
         <Field label="Priority (1-5)"><input type="number" min="1" max="5" value={f.priority} onChange={set('priority')} /></Field>
         <Field label="Salary min"><input type="number" value={f.salaryMin} onChange={set('salaryMin')} /></Field>
         <Field label="Salary max"><input type="number" value={f.salaryMax} onChange={set('salaryMax')} /></Field>
-        <Field label="Job URL" full><input value={f.jobUrl} onChange={set('jobUrl')} placeholder="https://" /></Field>
         <Field label="Notes" full><textarea rows="3" value={f.notes} onChange={set('notes')} /></Field>
       </div>
       <div className="modal-actions">
         {app && <button className="btn btn-danger btn-sm" onClick={del}>Delete</button>}
         <div className="spacer" />
         <button className="btn btn-line" onClick={onClose}>Cancel</button>
-        <button className="btn btn-accent" disabled={busy} onClick={save}>{app ? 'Save' : 'Add job'}</button>
+        <button className="btn btn-accent" disabled={busy || !f.jobUrl.trim()} onClick={save}>{app ? 'Save' : 'Add job'}</button>
       </div>
     </Modal>
   );

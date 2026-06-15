@@ -15,6 +15,7 @@ final Map<String, Box<Map>> kSyncedBoxes = {
   'goals': HiveService.goalsBox,
   'referral_sources': HiveService.referralSourcesBox,
   'referrals': HiveService.referralsBox,
+  'documents': HiveService.documentsBox,
 };
 
 class FirebaseService {
