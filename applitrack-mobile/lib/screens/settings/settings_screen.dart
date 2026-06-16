@@ -6,8 +6,10 @@ import '../../providers/applications_provider.dart';
 import '../../providers/documents_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/sync_provider.dart';
+import '../../providers/crypto_provider.dart';
 import '../../services/notification_service.dart';
 import '../../services/export_service.dart';
+import '../../services/crypto_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -130,6 +132,28 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/sync'),
           ),
+          Builder(builder: (context) {
+            final enabled = CryptoService.isEnabled;
+            final unlocked = CryptoService.isUnlocked;
+            return ListTile(
+              leading: Icon(enabled ? Icons.lock_outline : Icons.lock_open_outlined),
+              title: const Text('Encryption'),
+              subtitle: Text(!enabled
+                  ? 'Off — enable end-to-end encryption from the web app'
+                  : unlocked
+                      ? 'On · unlocked on this device'
+                      : 'On · locked'),
+              trailing: enabled && unlocked
+                  ? TextButton(
+                      onPressed: () async {
+                        await ref.read(cryptoProvider.notifier).lock();
+                        if (context.mounted) context.go('/unlock');
+                      },
+                      child: const Text('Lock'),
+                    )
+                  : null,
+            );
+          }),
           const Divider(height: 1, indent: 16),
 
           _SectionHeader('About'),

@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext.jsx';
 import { DataProvider } from './data/store.jsx';
+import { CryptoProvider, useCrypto } from './crypto/CryptoContext.jsx';
+import Unlock from './crypto/Unlock.jsx';
 import Shell from './components/Shell.jsx';
 import Login from './auth/Login.jsx';
 
@@ -36,10 +38,12 @@ export default function App() {
   }
 
   return (
-    <DataProvider>
-      <Shell>
-        <Suspense fallback={<div className="splash"><div className="spinner" /></div>}>
-        <Routes>
+    <CryptoProvider>
+      <CryptoGate>
+        <DataProvider>
+          <Shell>
+            <Suspense fallback={<div className="splash"><div className="spinner" /></div>}>
+            <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/companies" element={<Companies />} />
@@ -51,11 +55,21 @@ export default function App() {
           <Route path="/resumes" element={<Resumes />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        </Suspense>
-      </Shell>
-    </DataProvider>
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            </Suspense>
+          </Shell>
+        </DataProvider>
+      </CryptoGate>
+    </CryptoProvider>
   );
+}
+
+// Holds the app behind the unlock screen when this device is locked.
+function CryptoGate({ children }) {
+  const { status } = useCrypto();
+  if (status === 'loading') return <div className="splash"><div className="spinner" /></div>;
+  if (status === 'locked') return <Unlock />;
+  return children;
 }

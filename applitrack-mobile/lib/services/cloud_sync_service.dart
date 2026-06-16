@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'firebase_service.dart';
+import 'crypto_service.dart';
 
 /// Keeps local Hive data and the user's Firestore in sync automatically.
 ///
@@ -22,6 +23,13 @@ class CloudSyncService {
 
   static Future<void> start() async {
     if (_running || !FirebaseService.isSignedIn) return;
+
+    // Load encryption state first. If the account is encrypted but this device
+    // isn't unlocked yet, do NOT pull (we'd write ciphertext into local Hive) —
+    // the unlock flow calls start() again once the key is available.
+    await CryptoService.loadMeta();
+    if (CryptoService.isEnabled && !CryptoService.isUnlocked) return;
+
     _running = true;
 
     // 1. Cloud → local (so this device shows the account's data).
@@ -69,6 +77,7 @@ class CloudSyncService {
     }
     _subs.clear();
     _running = false;
+    CryptoService.clear();
     if (clearLocal) {
       // Watchers are already cancelled, so clearing won't trigger cloud deletes.
       for (final box in kSyncedBoxes.values) {

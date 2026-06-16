@@ -4,19 +4,16 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../auth/AuthContext';
+import { useCrypto } from '../crypto/CryptoContext.jsx';
+import { COLLECTIONS } from './collections';
 import { uid, nowIso } from '../lib/format';
 
 const DataCtx = createContext(null);
 export const useData = () => useContext(DataCtx);
 
-// Collections that live under users/{uid}/...  (mirrors the mobile app).
-const COLLECTIONS = [
-  'applications', 'interviews', 'contacts', 'timeline',
-  'companies', 'goals', 'referral_sources', 'referrals', 'documents', 'preferences',
-];
-
 export function DataProvider({ children }) {
   const { user } = useAuth();
+  const crypto = useCrypto();
   const [data, setData] = useState(() =>
     Object.fromEntries(COLLECTIONS.map((c) => [c, []])));
   const [ready, setReady] = useState(false);
@@ -28,14 +25,19 @@ export function DataProvider({ children }) {
       return;
     }
     const unsubs = COLLECTIONS.map((name) =>
-      onSnapshot(collection(db, 'users', user.uid, name), (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setData((prev) => ({ ...prev, [name]: rows }));
+      onSnapshot(collection(db, 'users', user.uid, name), async (snap) => {
+        // Decrypt each doc (pass-through for legacy plaintext). decDoc binds to
+        // the live key, so this works as soon as the device is unlocked.
+        const rows = await Promise.all(
+          snap.docs.map((d) => crypto.decDoc({ id: d.id, ...d.data() }).catch(() => null)),
+        );
+        setData((prev) => ({ ...prev, [name]: rows.filter(Boolean) }));
         setReady(true);
       }, () => setReady(true))
     );
     return () => unsubs.forEach((u) => u());
-  }, [user]);
+    // Re-subscribe when encryption flips on (after migration) so rows refresh decrypted.
+  }, [user, crypto.decDoc, crypto.enabled]);
 
   // ---- low-level write helpers ----
   // Surface write/delete failures instead of swallowing them. Firestore uses
@@ -44,8 +46,8 @@ export function DataProvider({ children }) {
   // "disappearing". A permission error here ("Missing or insufficient
   // permissions") means your security rules don't cover this collection.
   const ref = (name, id) => doc(db, 'users', user.uid, name, id);
-  const put = (name, obj) =>
-    setDoc(ref(name, obj.id), obj).catch((e) => {
+  const put = async (name, obj) =>
+    setDoc(ref(name, obj.id), await crypto.encDoc(obj)).catch((e) => {
       console.error(`[AppliTrack] failed to save to "${name}":`, e);
       alert(`Couldn't save to the cloud ("${name}"):\n${e.message}`);
       throw e;

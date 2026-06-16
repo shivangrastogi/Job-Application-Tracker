@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive/hive.dart';
 import 'hive_service.dart';
+import 'crypto_service.dart';
 
 /// Hive box → Firestore collection map. Every box here is mirrored to the
 /// cloud (under users/{uid}/{collection}) on sign-in and on every change.
@@ -87,7 +88,7 @@ class FirebaseService {
   static Future<void> upsert(
       String collection, String id, Map<String, dynamic> data) async {
     if (!isSignedIn) return;
-    await _col(collection).doc(id).set(data);
+    await _col(collection).doc(id).set(await CryptoService.maybeEncrypt(id, data));
   }
 
   static Future<void> deleteDoc(String collection, String id) async {
@@ -111,8 +112,9 @@ class FirebaseService {
 
       for (final entry in kSyncedBoxes.entries) {
         for (final e in entry.value.toMap().entries) {
-          batch.set(_col(entry.key).doc(e.key.toString()),
-              Map<String, dynamic>.from(e.value));
+          final id = e.key.toString();
+          batch.set(_col(entry.key).doc(id),
+              await CryptoService.maybeEncrypt(id, Map<String, dynamic>.from(e.value)));
           ops++;
           if (ops >= 400) await flush(); // Firestore batch limit is 500
         }
@@ -132,7 +134,8 @@ class FirebaseService {
       for (final entry in kSyncedBoxes.entries) {
         final docs = await _col(entry.key).get();
         for (final doc in docs.docs) {
-          await entry.value.put(doc.id, doc.data());
+          await entry.value
+              .put(doc.id, await CryptoService.maybeDecrypt(doc.id, doc.data()));
         }
       }
       return SyncResult.success(HiveService.applicationsBox.length);

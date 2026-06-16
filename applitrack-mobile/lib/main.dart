@@ -13,6 +13,7 @@ import 'providers/companies_provider.dart';
 import 'providers/goals_provider.dart';
 import 'providers/referrals_provider.dart';
 import 'providers/documents_provider.dart';
+import 'providers/crypto_provider.dart';
 import 'services/hive_service.dart';
 import 'services/cloud_sync_service.dart';
 import 'services/notification_service.dart';
@@ -51,9 +52,11 @@ class AppliTrackApp extends ConsumerWidget {
       final user = next.valueOrNull;
       if (user != null) {
         await CloudSyncService.start();
+        ref.read(cryptoProvider.notifier).refresh();
         _refreshData(ref);
       } else if (prev?.valueOrNull != null) {
         await CloudSyncService.stop();
+        ref.read(cryptoProvider.notifier).refresh();
         _refreshData(ref);
       }
     });

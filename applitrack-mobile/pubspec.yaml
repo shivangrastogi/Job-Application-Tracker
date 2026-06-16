@@ -52,6 +52,7 @@ dependencies:
   # Utilities
   url_launcher: ^6.3.1
   uuid: ^4.5.1
+  cryptography: ^2.7.0 # AES-GCM + PBKDF2 for end-to-end encryption
   intl: ^0.19.0
   collection: ^1.19.1
   shared_preferences: ^2.3.5

@@ -3,7 +3,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../providers/settings_provider.dart';
 import '../../providers/sync_provider.dart';
+import '../../providers/crypto_provider.dart';
 import '../../screens/auth/login_screen.dart';
+import '../../screens/auth/unlock_screen.dart';
 import '../../widgets/app_shell.dart';
 import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/applications/applications_screen.dart';
@@ -36,6 +38,7 @@ part 'app_router.g.dart';
 GoRouter router(RouterRef ref) {
   final settings = ref.watch(settingsNotifierProvider);
   final auth = ref.watch(authStateProvider);
+  final crypto = ref.watch(cryptoProvider);
 
   return GoRouter(
     initialLocation: '/dashboard',
@@ -51,14 +54,25 @@ GoRouter router(RouterRef ref) {
       // Signed in but hasn't seen onboarding.
       if (!settings.onboarded) return loc == '/onboarding' ? null : '/onboarding';
 
-      // Signed in & onboarded — keep them out of the gateway screens.
-      if (loc == '/login' || loc == '/onboarding') return '/dashboard';
+      // Encryption: account is encrypted but this device isn't unlocked yet.
+      if (crypto == CryptoGateStatus.locked) {
+        return loc == '/unlock' ? null : '/unlock';
+      }
+
+      // Signed in & onboarded & unlocked — keep them out of the gateway screens.
+      if (loc == '/login' || loc == '/onboarding' || loc == '/unlock') {
+        return '/dashboard';
+      }
       return null;
     },
     routes: [
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/unlock',
+        builder: (context, state) => const UnlockScreen(),
       ),
       GoRoute(
         path: '/onboarding',
