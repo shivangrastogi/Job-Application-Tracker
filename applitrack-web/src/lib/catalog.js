@@ -38,7 +38,7 @@ export const CATALOG = [
   { name: 'Flipkart', provider: 'custom', category: 'unicorn', careerUrl: 'https://www.flipkartcareers.com/#!/joblist', tags: ['India'] },
   { name: 'Swiggy', provider: 'custom', category: 'unicorn', careerUrl: 'https://careers.swiggy.com/#/careers', tags: ['India'] },
   { name: 'Zomato', provider: 'custom', category: 'unicorn', careerUrl: 'https://www.zomato.com/careers', tags: ['India'] },
-  { name: 'Razorpay', provider: 'custom', category: 'unicorn', careerUrl: 'https://razorpay.com/jobs/jobs-list/', tags: ['India', 'Fintech'] },
+  { name: 'Razorpay', provider: 'custom', category: 'unicorn', careerUrl: 'https://razorpay.com/jobs/', tags: ['India', 'Fintech'] },
   // Semiconductor & Hardware
   { name: 'NVIDIA', provider: 'workday', category: 'semiconductorHardware', config: { tenant: 'nvidia', dc: 'wd5', site: 'NVIDIAExternalCareerSite', query: 'engineer' }, careerUrl: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', tags: ['Hardware'] },
   // Indian IT

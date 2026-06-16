@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext.jsx';
 
 const NAV = [
@@ -16,6 +16,28 @@ const NAV = [
 export default function Shell({ children }) {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Keyboard shortcuts: "/" focuses search; "g" then a key jumps to a page.
+  useEffect(() => {
+    let gPending = false;
+    let timer;
+    const GO = { d: '/', a: '/applications', c: '/companies', i: '/interviews', r: '/resumes', g: '/goals', n: '/analytics', f: '/referrals', p: '/profile' };
+    const onKey = (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '/') { e.preventDefault(); document.querySelector('.search')?.focus(); return; }
+      if (e.key === 'g') { gPending = true; clearTimeout(timer); timer = setTimeout(() => { gPending = false; }, 1200); return; }
+      if (gPending) {
+        gPending = false;
+        const to = GO[e.key];
+        if (to) { e.preventDefault(); navigate(to); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); clearTimeout(timer); };
+  }, [navigate]);
 
   return (
     <div className="layout">

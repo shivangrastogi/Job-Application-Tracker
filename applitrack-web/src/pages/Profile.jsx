@@ -1,9 +1,16 @@
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useData } from '../data/store.jsx';
+import { applicationsToCsv, downloadCsv } from '../lib/exportCsv';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
-  const { applications, companies, goals, referrals, interviews } = useData();
+  const { applications, companies, goals, referrals, interviews, documents } = useData();
+
+  const exportCsv = () => {
+    const csv = applicationsToCsv(applications, documents || []);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCsv(`applitrack-applications-${date}.csv`, csv);
+  };
 
   return (
     <div className="page">
@@ -24,6 +31,14 @@ export default function Profile() {
           <Mini n={referrals.length} label="Referrals" />
           <Mini n={goals.length} label="Goals" />
         </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card-title">Export</h2>
+        <p className="muted">Download all your applications as a CSV (opens in Excel / Google Sheets), including which resume and whether a cover letter was used.</p>
+        <button className="btn btn-line" style={{ marginTop: 14 }} disabled={!applications.length} onClick={exportCsv}>
+          Export applications ({applications.length}) → CSV
+        </button>
       </section>
 
       <section className="card">

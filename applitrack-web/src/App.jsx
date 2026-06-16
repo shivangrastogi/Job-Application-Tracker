@@ -1,19 +1,23 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext.jsx';
 import { DataProvider } from './data/store.jsx';
 import Shell from './components/Shell.jsx';
 import Login from './auth/Login.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Applications from './pages/Applications.jsx';
-import Companies from './pages/Companies.jsx';
-import CompanyJobs from './pages/CompanyJobs.jsx';
-import Catalog from './pages/Catalog.jsx';
-import Goals from './pages/Goals.jsx';
-import Referrals from './pages/Referrals.jsx';
-import Interviews from './pages/Interviews.jsx';
-import Resumes from './pages/Resumes.jsx';
-import Analytics from './pages/Analytics.jsx';
-import Profile from './pages/Profile.jsx';
+
+// Page routes are lazy-loaded so the initial bundle only ships the shell +
+// whichever page you land on; the rest download on navigation.
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Applications = lazy(() => import('./pages/Applications.jsx'));
+const Companies = lazy(() => import('./pages/Companies.jsx'));
+const CompanyJobs = lazy(() => import('./pages/CompanyJobs.jsx'));
+const Catalog = lazy(() => import('./pages/Catalog.jsx'));
+const Goals = lazy(() => import('./pages/Goals.jsx'));
+const Referrals = lazy(() => import('./pages/Referrals.jsx'));
+const Interviews = lazy(() => import('./pages/Interviews.jsx'));
+const Resumes = lazy(() => import('./pages/Resumes.jsx'));
+const Analytics = lazy(() => import('./pages/Analytics.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -34,6 +38,7 @@ export default function App() {
   return (
     <DataProvider>
       <Shell>
+        <Suspense fallback={<div className="splash"><div className="spinner" /></div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/applications" element={<Applications />} />
@@ -49,6 +54,7 @@ export default function App() {
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </Shell>
     </DataProvider>
   );

@@ -59,6 +59,40 @@ export function bestResume(stats) {
   return eligible.reduce((best, s) => (s.interviewRate > best.interviewRate ? s : best));
 }
 
+// An actionable nudge comparing your strongest vs weakest resume (both with a
+// trustworthy sample), when the interview-rate gap is meaningful. Returns null
+// when there isn't enough to say.
+export function resumeRecommendation(stats) {
+  const eligible = stats.filter((s) => !s.lowData && s.id !== '__none__');
+  if (eligible.length < 2) return null;
+  const sorted = [...eligible].sort((a, b) => b.interviewRate - a.interviewRate);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const diff = best.interviewRate - worst.interviewRate;
+  if (diff < 10) return null; // not a meaningful difference
+  const factor = worst.interviewRate > 0
+    ? `${(best.interviewRate / worst.interviewRate).toFixed(1)}×`
+    : null;
+  return { best, worst, diff, factor };
+}
+
+// Conversion rates per job source (LinkedIn, referral, …) so you can see which
+// channel actually lands interviews. `labels` maps source key → display label.
+export function sourceStats(apps, labels) {
+  const byKey = {};
+  for (const a of apps) {
+    if (!SENT(a)) continue;
+    const key = a.source || 'other';
+    tally((byKey[key] ||= bucket()), a.status);
+  }
+  return Object.entries(byKey)
+    .map(([k, b]) => withRates({ id: k, name: labels[k] || k }, b))
+    .sort((a, b) =>
+      (a.lowData - b.lowData) ||
+      (b.interviewRate - a.interviewRate) ||
+      (b.sent - a.sent));
+}
+
 // With- vs without-cover-letter conversion, across sent applications.
 export function coverLetterStats(apps) {
   const withCl = bucket();

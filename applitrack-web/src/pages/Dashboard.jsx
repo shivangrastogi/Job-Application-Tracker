@@ -3,10 +3,12 @@ import { useData } from '../data/store.jsx';
 import { isActiveStatus, statusColor, statusLabel, PIPELINE_STAGES, GoalMetric, GoalPeriod } from '../lib/enums';
 import { goalProgress } from '../lib/goals';
 import { resumeStats, bestResume } from '../lib/resumeAnalytics';
+import { isStale, daysSince, STALE_DAYS } from '../lib/staleness';
 
 export default function Dashboard() {
   const { applications: apps, interviews, goals, documents } = useData();
   const topResume = bestResume(resumeStats(apps, documents || []));
+  const staleApps = apps.filter(isStale).sort((a, b) => daysSince(b.updatedAt) - daysSince(a.updatedAt));
 
   const total = apps.length;
   const active = apps.filter((a) => isActiveStatus(a.status)).length;
@@ -42,6 +44,26 @@ export default function Dashboard() {
         <Stat label="Interviews / week" value={ivThisWeek} color="#a78bfa" icon="◆" />
         <Stat label="Offers" value={offers} color="#22c55e" icon="★" />
       </div>
+
+      {staleApps.length > 0 && (
+        <section className="card nudge">
+          <div className="card-title-row">
+            <h2 className="card-title">⏰ Needs follow-up</h2>
+            <Link to="/applications" className="link">View all</Link>
+          </div>
+          <p className="muted" style={{ marginTop: -4 }}>
+            {staleApps.length} active application{staleApps.length === 1 ? '' : 's'} with no movement in {STALE_DAYS}+ days.
+          </p>
+          <div className="nudge-list">
+            {staleApps.slice(0, 4).map((a) => (
+              <Link to="/applications" className="nudge-row" key={a.id}>
+                <span className="nudge-main"><b>{a.role || a.company}</b><span className="muted">{a.company}</span></span>
+                <span className="nudge-age">{daysSince(a.updatedAt)}d</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {topResume && (
         <Link to="/analytics" className="card top-resume">

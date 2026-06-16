@@ -12,7 +12,7 @@ export const useData = () => useContext(DataCtx);
 // Collections that live under users/{uid}/...  (mirrors the mobile app).
 const COLLECTIONS = [
   'applications', 'interviews', 'contacts', 'timeline',
-  'companies', 'goals', 'referral_sources', 'referrals', 'documents',
+  'companies', 'goals', 'referral_sources', 'referrals', 'documents', 'preferences',
 ];
 
 export function DataProvider({ children }) {
@@ -166,6 +166,11 @@ export function DataProvider({ children }) {
     updateDocument: (prev, patch) =>
       put('documents', { ...prev, ...patch, updatedAt: nowIso() }),
     deleteDocument: (id) => remove('documents', id),
+
+    // ---- preferences (synced cross-device, e.g. the default resume) ----
+    defaultResumeId: (data.preferences.find((p) => p.id === 'default') || {}).resumeId || null,
+    setDefaultResume: (id) =>
+      id ? put('preferences', { id: 'default', resumeId: id }) : remove('preferences', 'default'),
   };
 
   return <DataCtx.Provider value={api}>{children}</DataCtx.Provider>;

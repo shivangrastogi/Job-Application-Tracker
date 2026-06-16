@@ -3,7 +3,6 @@ import { useData } from '../data/store.jsx';
 import Modal from '../components/Modal.jsx';
 import { DocumentType } from '../lib/enums';
 import { relDate } from '../lib/format';
-import { getDefaultResumeId, setDefaultResumeId } from '../lib/resumePref';
 
 const DOC_KEYS = Object.keys(DocumentType);
 
@@ -12,7 +11,7 @@ export default function Resumes() {
   const docs = data.documents || [];
   const apps = data.applications || [];
   const [editing, setEditing] = useState(null); // doc object or 'new'
-  const [defaultId, setDefault] = useState(() => getDefaultResumeId());
+  const defaultId = data.defaultResumeId;
 
   const sorted = useMemo(
     () => [...docs].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')),
@@ -26,11 +25,7 @@ export default function Resumes() {
     return m;
   }, [apps]);
 
-  const makeDefault = (id) => {
-    const next = defaultId === id ? null : id;
-    setDefaultResumeId(next);
-    setDefault(next);
-  };
+  const makeDefault = (id) => data.setDefaultResume(defaultId === id ? null : id);
 
   return (
     <div className="page">

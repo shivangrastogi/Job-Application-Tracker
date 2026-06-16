@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { useData } from '../data/store.jsx';
 import Modal from '../components/Modal.jsx';
 import { ApplicationStatus, STATUS_KEYS, PIPELINE_STAGES, statusColor, statusLabel, WorkType, JobSource } from '../lib/enums';
-import { relDate, appTitle } from '../lib/format';
-import { getDefaultResumeId } from '../lib/resumePref';
+import { relDate, appTitle, guessCompanyFromUrl, normalizeUrl, looksLikeUrl } from '../lib/format';
+import { isStale, daysSince } from '../lib/staleness';
+import { PREP_ITEMS, getPrep, setPrep } from '../lib/prep';
 
 export default function Applications() {
   const data = useData();
@@ -12,9 +13,15 @@ export default function Applications() {
   const [kanban, setKanban] = useState(false);
   const [query, setQuery] = useState('');
   const [resumeFilter, setResumeFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
   const [editing, setEditing] = useState(null); // app object or 'new'
+  const [bulk, setBulk] = useState(false);
 
   const resumeDocs = (data.documents || []).filter((d) => (d.type || 'resume') === 'resume');
+  const allTags = useMemo(
+    () => [...new Set(apps.flatMap((a) => a.tags || []))].sort((a, b) => a.localeCompare(b)),
+    [apps],
+  );
 
   const filtered = useMemo(() => {
     let list = apps;
@@ -22,12 +29,13 @@ export default function Applications() {
     if (resumeFilter !== 'all') {
       list = list.filter((a) => (resumeFilter === 'none' ? !a.resumeVersionId : a.resumeVersionId === resumeFilter));
     }
+    if (tagFilter !== 'all') list = list.filter((a) => (a.tags || []).includes(tagFilter));
     if (query) {
       const q = query.toLowerCase();
       list = list.filter((a) => a.company?.toLowerCase().includes(q) || a.role?.toLowerCase().includes(q));
     }
     return [...list].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-  }, [apps, filter, query, resumeFilter]);
+  }, [apps, filter, query, resumeFilter, tagFilter]);
 
   return (
     <div className="page">
@@ -35,6 +43,7 @@ export default function Applications() {
         <div><h1>Applications</h1><p className="muted">{apps.length} tracked</p></div>
         <div className="head-actions">
           <button className="btn btn-line btn-sm" onClick={() => setKanban((k) => !k)}>{kanban ? 'List view' : 'Board view'}</button>
+          <button className="btn btn-line btn-sm" onClick={() => setBulk(true)}>Bulk add</button>
           <button className="btn btn-accent" onClick={() => setEditing('new')}>+ Add job</button>
         </div>
       </div>
@@ -48,6 +57,12 @@ export default function Applications() {
             {resumeDocs.map((d) => (
               <option key={d.id} value={d.id}>{d.name}{d.version ? ` · v${d.version}` : ''}</option>
             ))}
+          </select>
+        )}
+        {allTags.length > 0 && (
+          <select className="search toolbar-select" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+            <option value="all">All tags</option>
+            {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         )}
       </div>
@@ -84,8 +99,12 @@ export default function Applications() {
               <div className="row-main">
                 <b>{appTitle(a)}</b>
                 <span className="muted">{a.company || 'Tap to add details'}{a.location ? ` · ${a.location}` : ''}</span>
+                {a.tags?.length > 0 && (
+                  <span className="tag-row">{a.tags.map((t) => <span className="tag" key={t}>{t}</span>)}</span>
+                )}
               </div>
               <span className="badge" style={{ color: statusColor(a.status), background: statusColor(a.status) + '22' }}>{statusLabel(a.status)}</span>
+              {isStale(a) && <span className="badge stale-badge" title={`No update in ${daysSince(a.updatedAt)} days — follow up`}>⏰ {daysSince(a.updatedAt)}d</span>}
               <span className="muted small">{relDate(a.updatedAt)}</span>
             </div>
           ))}
@@ -99,7 +118,70 @@ export default function Applications() {
           data={data}
         />
       )}
+
+      {bulk && <BulkModal data={data} onClose={() => setBulk(false)} />}
     </div>
+  );
+}
+
+function BulkModal({ data, onClose }) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const run = async () => {
+    const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) return;
+    setBusy(true);
+    const existing = new Set(
+      (data.applications || []).map((a) => (a.jobUrl ? normalizeUrl(a.jobUrl) : '')).filter(Boolean),
+    );
+    const seen = new Set();
+    const defaultResume = data.defaultResumeId || null;
+    let added = 0, skipped = 0, invalid = 0;
+    for (const line of lines) {
+      const norm = normalizeUrl(line);
+      if (!norm) { invalid++; continue; }
+      if (existing.has(norm) || seen.has(norm)) { skipped++; continue; }
+      seen.add(norm);
+      // eslint-disable-next-line no-await-in-loop
+      await data.addApplication({
+        jobUrl: line,
+        company: guessCompanyFromUrl(line) || null,
+        status: 'wishlist',
+        resumeVersionId: defaultResume,
+      });
+      added++;
+    }
+    setResult({ added, skipped, invalid });
+    setBusy(false);
+  };
+
+  return (
+    <Modal title="Bulk add jobs" onClose={onClose}>
+      {result ? (
+        <>
+          <p>✅ Added <b>{result.added}</b> job{result.added === 1 ? '' : 's'}
+            {result.skipped ? `, skipped ${result.skipped} already tracked` : ''}
+            {result.invalid ? `, ${result.invalid} weren't valid links` : ''}.</p>
+          <p className="muted small">They're saved as <b>Wishlist</b> — open each to set the status, role and details when ready.</p>
+          <div className="modal-actions"><div className="spacer" /><button className="btn btn-accent" onClick={onClose}>Done</button></div>
+        </>
+      ) : (
+        <>
+          <p className="muted" style={{ marginBottom: 10 }}>Paste one job link per line. We create an application for each, guess the company, attach your default resume, and skip links you already track.</p>
+          <label className="field full"><span>Job links (one per line)</span>
+            <textarea rows="8" value={text} onChange={(e) => setText(e.target.value)}
+              placeholder={'https://boards.greenhouse.io/stripe/jobs/123\nhttps://jobs.lever.co/cred/abc\nhttps://www.linkedin.com/jobs/view/456'} />
+          </label>
+          <div className="modal-actions">
+            <div className="spacer" />
+            <button className="btn btn-line" onClick={onClose}>Cancel</button>
+            <button className="btn btn-accent" disabled={busy || !text.trim()} onClick={run}>{busy ? 'Adding…' : 'Add all'}</button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 
@@ -130,12 +212,18 @@ function JobModal({ app, onClose, data }) {
     appliedDate: app?.appliedDate ? app.appliedDate.slice(0, 10) : '',
     salaryMin: app?.salaryMin ?? '', salaryMax: app?.salaryMax ?? '',
     priority: app?.priority ?? 3, notes: app?.notes || '',
-    resumeVersionId: app ? (app.resumeVersionId || '') : (getDefaultResumeId() || ''),
+    resumeVersionId: app ? (app.resumeVersionId || '') : (data.defaultResumeId || ''),
     coverLetterUsed: app?.coverLetterUsed ?? false,
+    tags: (app?.tags || []).join(', '),
   }));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const setBool = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.checked }));
   const [busy, setBusy] = useState(false);
+
+  // When adding a new job, flag if its URL is already tracked (don't block).
+  const dupe = (!app && f.jobUrl.trim())
+    ? (data.applications || []).find((a) => a.jobUrl && normalizeUrl(a.jobUrl) === normalizeUrl(f.jobUrl))
+    : null;
 
   const save = async () => {
     if (!f.jobUrl.trim()) return;
@@ -150,6 +238,7 @@ function JobModal({ app, onClose, data }) {
       priority: Number(f.priority), notes: f.notes.trim() || null,
       resumeVersionId: f.resumeVersionId || null,
       coverLetterUsed: f.coverLetterUsed,
+      tags: f.tags.split(',').map((t) => t.trim()).filter(Boolean),
     };
     if (app) await data.updateApplication(app, patch);
     else await data.addApplication(patch);
@@ -161,8 +250,26 @@ function JobModal({ app, onClose, data }) {
   return (
     <Modal title={app ? 'Edit application' : 'Add application'} onClose={onClose} wide>
       <div className="form-grid">
+        {dupe && (
+          <div className="field full dupe-warn">
+            ⚠️ You already tracked <b>{appTitle(dupe)}</b>{dupe.company ? ` at ${dupe.company}` : ''} ({statusLabel(dupe.status)}). You can still add it again.
+          </div>
+        )}
         <Field label="Job URL *" full>
-          <input value={f.jobUrl} onChange={set('jobUrl')} placeholder="https://… (paste the link, fill the rest later)" autoFocus />
+          <input
+            value={f.jobUrl}
+            onChange={set('jobUrl')}
+            onBlur={() => setF((s) => {
+              if (s.company.trim()) return s;
+              const guess = guessCompanyFromUrl(s.jobUrl);
+              return guess ? { ...s, company: guess } : s;
+            })}
+            placeholder="https://… (paste the link, fill the rest later)"
+            autoFocus
+          />
+          {f.jobUrl.trim() && !looksLikeUrl(f.jobUrl) && (
+            <span className="field-hint">⚠ That doesn't look like a web link — you can still save it.</span>
+          )}
         </Field>
         <Field label="Company"><input value={f.company} onChange={set('company')} /></Field>
         <Field label="Role"><input value={f.role} onChange={set('role')} /></Field>
@@ -198,8 +305,10 @@ function JobModal({ app, onClose, data }) {
         <Field label="Priority (1-5)"><input type="number" min="1" max="5" value={f.priority} onChange={set('priority')} /></Field>
         <Field label="Salary min"><input type="number" value={f.salaryMin} onChange={set('salaryMin')} /></Field>
         <Field label="Salary max"><input type="number" value={f.salaryMax} onChange={set('salaryMax')} /></Field>
+        <Field label="Tags (comma separated)" full><input value={f.tags} onChange={set('tags')} placeholder="remote, dream company, urgent" /></Field>
         <Field label="Notes" full><textarea rows="3" value={f.notes} onChange={set('notes')} /></Field>
       </div>
+      {app && <PrepChecklist appId={app.id} />}
       <div className="modal-actions">
         {app && <button className="btn btn-danger btn-sm" onClick={del}>Delete</button>}
         <div className="spacer" />
@@ -212,4 +321,27 @@ function JobModal({ app, onClose, data }) {
 
 function Field({ label, children, full }) {
   return <label className={'field' + (full ? ' full' : '')}><span>{label}</span>{children}</label>;
+}
+
+function PrepChecklist({ appId }) {
+  const [done, setDone] = useState(() => getPrep(appId));
+  const toggle = (item) => {
+    const next = done.includes(item) ? done.filter((x) => x !== item) : [...done, item];
+    setDone(next);
+    setPrep(appId, next);
+  };
+  return (
+    <div className="prep">
+      <div className="prep-head">
+        <b>Interview prep</b>
+        <span className="muted small">{done.length}/{PREP_ITEMS.length} done</span>
+      </div>
+      {PREP_ITEMS.map((item) => (
+        <label className="prep-item" key={item}>
+          <input type="checkbox" checked={done.includes(item)} onChange={() => toggle(item)} />
+          <span className={done.includes(item) ? 'prep-done' : ''}>{item}</span>
+        </label>
+      ))}
+    </div>
+  );
 }
