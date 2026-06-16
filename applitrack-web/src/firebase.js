@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 // Same Firebase project as the AppliTrack mobile app, so web ⇄ mobile data
 // syncs automatically. (Firebase web config is safe to ship in the client;
@@ -17,5 +17,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Auto-detect long-polling so Firestore still works when its streaming
+// WebChannel/QUIC connection is blocked by a proxy, VPN, ad-blocker, or strict
+// network — the cause of "WebChannelConnection RPC 'Listen' stream transport
+// errored" / ERR_QUIC_PROTOCOL_ERROR, where data silently never reaches the server.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 export const googleProvider = new GoogleAuthProvider();
