@@ -1,10 +1,84 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../core/constants/enums.dart';
+import '../models/job_application.dart';
 import 'applications_provider.dart';
 import 'documents_provider.dart';
 import 'interviews_provider.dart';
 
 part 'analytics_provider.g.dart';
+
+/// Salary stats across applications that have any salary data.
+class SalaryInsights {
+  final int count;
+  final String currency;
+  final double median;
+  final double average;
+  final double lo;
+  final double hi;
+  final double? offeredAvg;
+  final int offeredCount;
+  const SalaryInsights({
+    required this.count,
+    required this.currency,
+    required this.median,
+    required this.average,
+    required this.lo,
+    required this.hi,
+    required this.offeredAvg,
+    required this.offeredCount,
+  });
+}
+
+double? _salaryValue(JobApplication a) {
+  if (a.salaryMin != null && a.salaryMax != null) {
+    return (a.salaryMin! + a.salaryMax!) / 2;
+  }
+  return a.salaryMin ?? a.salaryMax;
+}
+
+SalaryInsights? _computeSalary(List<JobApplication> apps) {
+  final rows = apps
+      .where((a) => a.salaryMin != null || a.salaryMax != null)
+      .toList();
+  if (rows.isEmpty) return null;
+  final vals = rows.map(_salaryValue).whereType<double>().toList()..sort();
+  final mid = vals.length ~/ 2;
+  final median = vals.length.isOdd ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+  final average = vals.reduce((a, b) => a + b) / vals.length;
+  final lo = rows
+      .map((a) => a.salaryMin ?? a.salaryMax!)
+      .reduce((a, b) => a < b ? a : b);
+  final hi = rows
+      .map((a) => a.salaryMax ?? a.salaryMin!)
+      .reduce((a, b) => a > b ? a : b);
+  final curCount = <String, int>{};
+  for (final a in rows) {
+    curCount[a.salaryCurrency] = (curCount[a.salaryCurrency] ?? 0) + 1;
+  }
+  final currency = (curCount.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value)))
+      .first
+      .key;
+  final offers = rows
+      .where((a) =>
+          a.status == ApplicationStatus.offerReceived ||
+          a.status == ApplicationStatus.accepted)
+      .toList();
+  final offeredAvg = offers.isEmpty
+      ? null
+      : offers.map(_salaryValue).whereType<double>().reduce((a, b) => a + b) /
+          offers.length;
+  return SalaryInsights(
+    count: rows.length,
+    currency: currency,
+    median: median,
+    average: average,
+    lo: lo.toDouble(),
+    hi: hi.toDouble(),
+    offeredAvg: offeredAvg,
+    offeredCount: offers.length,
+  );
+}
 
 /// Below this many sent applications, a resume's rates are noise — flagged as
 /// "low data" so they aren't trusted or surfaced as the top resume.
@@ -68,6 +142,8 @@ class AnalyticsSummary {
   final Map<WorkType, int> byWorkType;
   final List<ResumeStat> byResume;
   final List<ResumeStat> byCoverLetter;
+  final List<ResumeStat> bySourcePerf;
+  final SalaryInsights? salary;
 
   const AnalyticsSummary({
     required this.total,
@@ -82,6 +158,8 @@ class AnalyticsSummary {
     required this.byWorkType,
     required this.byResume,
     required this.byCoverLetter,
+    required this.bySourcePerf,
+    required this.salary,
   });
 }
 
@@ -181,6 +259,32 @@ AnalyticsSummary analyticsSummary(AnalyticsSummaryRef ref) {
         offered: clWithout[3]),
   ].where((r) => r.sent > 0).toList();
 
+  // ── Per-source (channel) conversion performance ──
+  final sourceBuckets = <JobSource, List<int>>{};
+  for (final a in apps) {
+    if (a.status == ApplicationStatus.wishlist) continue;
+    final b = sourceBuckets.putIfAbsent(a.source, () => [0, 0, 0, 0]);
+    b[0]++;
+    if (_respondedStatuses.contains(a.status)) b[1]++;
+    if (_interviewedStatuses.contains(a.status)) b[2]++;
+    if (_offeredStatuses.contains(a.status)) b[3]++;
+  }
+  final bySourcePerf = sourceBuckets.entries
+      .map((e) => ResumeStat(
+            id: e.key.name,
+            name: e.key.label,
+            sent: e.value[0],
+            responded: e.value[1],
+            interviewed: e.value[2],
+            offered: e.value[3],
+          ))
+      .toList()
+    ..sort((a, b) {
+      if (a.lowData != b.lowData) return a.lowData ? 1 : -1;
+      final byInterview = b.interviewRate.compareTo(a.interviewRate);
+      return byInterview != 0 ? byInterview : b.sent.compareTo(a.sent);
+    });
+
   return AnalyticsSummary(
     total: apps.length,
     active: apps.where((a) => a.status.isActive).length,
@@ -194,6 +298,8 @@ AnalyticsSummary analyticsSummary(AnalyticsSummaryRef ref) {
     byWorkType: byWorkType,
     byResume: byResume,
     byCoverLetter: byCoverLetter,
+    bySourcePerf: bySourcePerf,
+    salary: _computeSalary(apps),
   );
 }
 

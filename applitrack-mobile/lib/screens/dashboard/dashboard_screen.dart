@@ -3,10 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/analytics_provider.dart';
+import '../../providers/applications_provider.dart';
 import '../../providers/interviews_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../core/constants/enums.dart';
 import '../../core/constants/status_colors.dart';
+import '../../core/utils/staleness.dart';
+import '../../core/utils/app_display.dart';
+import '../../services/cloud_sync_service.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -28,6 +32,10 @@ class DashboardScreen extends ConsumerWidget {
         : eligibleResumes
             .reduce((a, b) => b.interviewRate > a.interviewRate ? b : a);
 
+    final staleApps = ref.watch(applicationsNotifierProvider).where(isStaleApp).toList()
+      ..sort((a, b) =>
+          daysSinceUpdate(b.updatedAt).compareTo(daysSinceUpdate(a.updatedAt)));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AppliTrack'),
@@ -47,6 +55,9 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Sync health banner — only visible when a cloud write has failed
+            const _SyncErrorBanner(),
+
             // Stat cards row
             Row(
               children: [
@@ -84,6 +95,66 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ).animate(delay: 60.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, end: 0),
             const SizedBox(height: 16),
+
+            // Follow-up nudge — active applications going stale
+            if (staleApps.isNotEmpty) ...[
+              Card(
+                clipBehavior: Clip.antiAlias,
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule_rounded,
+                              color: Color(0xFFF59E0B), size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${staleApps.length} application${staleApps.length == 1 ? '' : 's'} need a follow-up',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('No movement in $staleDays+ days.',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurface.withValues(alpha: 0.6))),
+                      const SizedBox(height: 6),
+                      ...staleApps.take(3).map((a) => InkWell(
+                            onTap: () => context.push('/applications/${a.id}'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${a.displayRole} · ${a.displayCompany}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  Text('${daysSinceUpdate(a.updatedAt)}d',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFFF59E0B))),
+                                ],
+                              ),
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ).animate(delay: 70.ms).fadeIn(duration: 300.ms).slideY(begin: 0.08, end: 0),
+              const SizedBox(height: 16),
+            ],
 
             // Top resume spotlight
             if (topResume != null) ...[
@@ -313,6 +384,49 @@ class DashboardScreen extends ConsumerWidget {
 
   String _time(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
+/// Shows a dismissible warning when a cloud write has failed, so silent sync
+/// problems (e.g. Firestore rules) are visible. Hidden when sync is healthy.
+class _SyncErrorBanner extends StatelessWidget {
+  const _SyncErrorBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String?>(
+      valueListenable: CloudSyncService.syncError,
+      builder: (context, error, _) {
+        if (error == null) return const SizedBox.shrink();
+        const amber = Color(0xFFF59E0B);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+          decoration: BoxDecoration(
+            color: amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: amber.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.cloud_off_outlined, color: amber, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(error,
+                    style: const TextStyle(fontSize: 12.5, height: 1.3)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => CloudSyncService.syncError.value = null,
+                tooltip: 'Dismiss',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _StatCard extends StatelessWidget {

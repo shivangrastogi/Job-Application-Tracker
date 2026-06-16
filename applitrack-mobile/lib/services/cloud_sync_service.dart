@@ -14,8 +14,9 @@ class CloudSyncService {
   static final List<StreamSubscription> _subs = [];
   static bool _running = false;
 
-  /// Last cloud-write failure (e.g. permission denied), for surfacing in the UI.
-  static String? lastError;
+  /// Last cloud-write failure (e.g. permission denied), exposed as a listenable
+  /// so the UI can show a banner. Null when sync is healthy / dismissed.
+  static final ValueNotifier<String?> syncError = ValueNotifier<String?>(null);
 
   static bool get isRunning => _running;
 
@@ -45,9 +46,14 @@ class CloudSyncService {
         // Don't let a failed cloud write vanish silently — surface it so a
         // rules/permissions problem is diagnosable instead of looking like
         // data that "didn't save".
-        op.catchError((Object e) {
-          lastError = 'Cloud sync failed for $collection/$id: $e';
-          debugPrint('[AppliTrack] $lastError');
+        op.then((_) {
+          if (syncError.value != null) syncError.value = null; // recovered
+        }).catchError((Object e) {
+          final permission = e.toString().toLowerCase().contains('permission');
+          syncError.value = permission
+              ? "Cloud sync blocked — check your Firestore security rules. Recent changes are saved on this device but aren't backed up."
+              : 'Cloud sync failed: $e';
+          debugPrint('[AppliTrack] cloud sync failed for $collection/$id: $e');
         });
       }));
     }

@@ -8,6 +8,7 @@ import '../../widgets/app_shell.dart';
 import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/applications/applications_screen.dart';
 import '../../screens/applications/add_application_screen.dart';
+import '../../screens/applications/bulk_add_screen.dart';
 import '../../screens/applications/application_detail_screen.dart';
 import '../../screens/applications/edit_application_screen.dart';
 import '../../screens/applications/add_interview_screen.dart';
@@ -107,6 +108,10 @@ GoRouter router(RouterRef ref) {
       GoRoute(
         path: '/applications/add',
         builder: (context, state) => const AddApplicationScreen(),
+      ),
+      GoRoute(
+        path: '/applications/bulk',
+        builder: (context, state) => const BulkAddScreen(),
       ),
       GoRoute(
         path: '/applications/:id',

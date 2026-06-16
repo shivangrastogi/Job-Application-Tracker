@@ -12,6 +12,7 @@ import 'providers/contacts_provider.dart';
 import 'providers/companies_provider.dart';
 import 'providers/goals_provider.dart';
 import 'providers/referrals_provider.dart';
+import 'providers/documents_provider.dart';
 import 'services/hive_service.dart';
 import 'services/cloud_sync_service.dart';
 import 'services/notification_service.dart';
@@ -35,6 +36,8 @@ void _refreshData(WidgetRef ref) {
   ref.invalidate(goalsNotifierProvider);
   ref.invalidate(referralsNotifierProvider);
   ref.invalidate(referralSourcesNotifierProvider);
+  ref.invalidate(documentsNotifierProvider);
+  ref.invalidate(settingsNotifierProvider);
 }
 
 class AppliTrackApp extends ConsumerWidget {

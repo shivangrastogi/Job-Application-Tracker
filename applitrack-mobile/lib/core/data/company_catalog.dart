@@ -145,7 +145,7 @@ const List<SeedCompany> kCompanyCatalog = [
     name: 'Razorpay',
     provider: AtsProvider.custom,
     category: CompanyCategory.unicorn,
-    careerUrl: 'https://razorpay.com/jobs/jobs-list/',
+    careerUrl: 'https://razorpay.com/jobs/',
     tags: ['India', 'Fintech'],
   ),
 

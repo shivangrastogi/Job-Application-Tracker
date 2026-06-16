@@ -13,6 +13,7 @@ class HiveService {
   static const _seenJobs = 'company_seen_jobs';
   static const _referralSources = 'referral_sources';
   static const _referrals = 'referrals';
+  static const _preferences = 'preferences';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -29,6 +30,7 @@ class HiveService {
       Hive.openBox<dynamic>(_seenJobs),
       Hive.openBox<Map>(_referralSources),
       Hive.openBox<Map>(_referrals),
+      Hive.openBox<Map>(_preferences),
     ]);
   }
 
@@ -44,4 +46,6 @@ class HiveService {
   static Box<dynamic> get seenJobsBox => Hive.box<dynamic>(_seenJobs);
   static Box<Map> get referralSourcesBox => Hive.box<Map>(_referralSources);
   static Box<Map> get referralsBox => Hive.box<Map>(_referrals);
+  // Synced cross-device preferences (e.g. default resume), one doc per key.
+  static Box<Map> get preferencesBox => Hive.box<Map>(_preferences);
 }

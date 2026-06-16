@@ -13,7 +13,6 @@ class SettingsNotifier extends _$SettingsNotifier {
   static const _notifyStale = 'notifyStale';
   static const _notifyWeekly = 'notifyWeekly';
   static const _followUpDays = 'followUpDays';
-  static const _defaultResumeId = 'defaultResumeId';
   static const _refName = 'referralName';
   static const _refEmail = 'referralEmail';
   static const _refPhone = 'referralPhone';
@@ -21,9 +20,29 @@ class SettingsNotifier extends _$SettingsNotifier {
   static const _refResume = 'referralResumeUrl';
 
   Box get _box => HiveService.settingsBox;
+  // Default resume lives in the synced `preferences` box (one doc 'default')
+  // so it agrees across web and mobile, unlike the device-local settings box.
+  Box<Map> get _prefs => HiveService.preferencesBox;
+
+  String? get _syncedDefaultResumeId {
+    final raw = _prefs.get('default');
+    return raw == null ? null : Map<String, dynamic>.from(raw)['resumeId'] as String?;
+  }
+
+  // One-time: move a pre-existing device-local default resume into the synced
+  // preferences box so upgrading users don't lose their selection.
+  void _migrateDefaultResume() {
+    if (_prefs.get('default') != null) return;
+    final old = _box.get('defaultResumeId');
+    if (old is String && old.isNotEmpty) {
+      _prefs.put('default', {'id': 'default', 'resumeId': old});
+      _box.delete('defaultResumeId');
+    }
+  }
 
   @override
   AppSettings build() {
+    _migrateDefaultResume();
     return AppSettings(
       onboarded: _box.get(_onboarded, defaultValue: false) as bool,
       themeModeName: _box.get(_themeMode, defaultValue: 'system') as String,
@@ -32,7 +51,7 @@ class SettingsNotifier extends _$SettingsNotifier {
       notifyStale: _box.get(_notifyStale, defaultValue: true) as bool,
       notifyWeekly: _box.get(_notifyWeekly, defaultValue: false) as bool,
       followUpDays: _box.get(_followUpDays, defaultValue: 14) as int,
-      defaultResumeId: _box.get(_defaultResumeId) as String?,
+      defaultResumeId: _syncedDefaultResumeId,
       referralName: _box.get(_refName) as String?,
       referralEmail: _box.get(_refEmail) as String?,
       referralPhone: _box.get(_refPhone) as String?,
@@ -73,9 +92,9 @@ class SettingsNotifier extends _$SettingsNotifier {
 
   void setDefaultResumeId(String? id) {
     if (id == null) {
-      _box.delete(_defaultResumeId);
+      _prefs.delete('default');
     } else {
-      _box.put(_defaultResumeId, id);
+      _prefs.put('default', {'id': 'default', 'resumeId': id});
     }
     state = state.copyWith(defaultResumeId: id, clearDefaultResumeId: id == null);
   }

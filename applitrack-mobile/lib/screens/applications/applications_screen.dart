@@ -7,6 +7,7 @@ import '../../providers/documents_provider.dart';
 import '../../core/constants/enums.dart';
 import '../../core/constants/status_colors.dart';
 import '../../core/utils/app_display.dart';
+import '../../core/utils/staleness.dart';
 import '../../models/job_application.dart';
 
 class ApplicationsScreen extends ConsumerStatefulWidget {
@@ -47,6 +48,11 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
           IconButton(
             icon: const Icon(Icons.search_outlined),
             onPressed: () => context.push('/search'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.playlist_add_outlined),
+            onPressed: () => context.push('/applications/bulk'),
+            tooltip: 'Bulk add',
           ),
           IconButton(
             icon: Icon(
@@ -343,6 +349,22 @@ class _ApplicationCard extends ConsumerWidget {
                         text: app.sourceName?.isNotEmpty == true
                             ? app.sourceName!
                             : app.source.label),
+                    if (isStaleApp(app)) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('⏰ ${daysSinceUpdate(app.updatedAt)}d',
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFF59E0B))),
+                      ),
+                    ],
                     const Spacer(),
                     Row(
                       children: List.generate(
@@ -358,6 +380,29 @@ class _ApplicationCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (app.tags.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: app.tags
+                        .map((t) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(t,
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onSurface
+                                          .withValues(alpha: 0.7))),
+                            ))
+                        .toList(),
+                  ),
+                ],
               ],
             ],
           ),

@@ -23,6 +23,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
   final _locationCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final _sourceNameCtrl = TextEditingController();
+  final _tagsCtrl = TextEditingController();
 
   ApplicationStatus _status = ApplicationStatus.wishlist;
   WorkType _workType = WorkType.onsite;
@@ -44,6 +45,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
     _locationCtrl.dispose();
     _notesCtrl.dispose();
     _sourceNameCtrl.dispose();
+    _tagsCtrl.dispose();
     super.dispose();
   }
 
@@ -58,6 +60,7 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
     _locationCtrl.text = app.location ?? '';
     _notesCtrl.text = app.notes ?? '';
     _sourceNameCtrl.text = app.sourceName ?? '';
+    _tagsCtrl.text = app.tags.join(', ');
     _status = app.status;
     _workType = app.workType;
     _source = app.source;
@@ -92,6 +95,11 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
                   : _sourceNameCtrl.text.trim(),
               resumeVersionId: _resumeId,
               coverLetterUsed: _coverLetterUsed,
+              tags: _tagsCtrl.text
+                  .split(',')
+                  .map((t) => t.trim())
+                  .where((t) => t.isNotEmpty)
+                  .toList(),
               priority: _priority,
               notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
             ),
@@ -215,6 +223,15 @@ class _EditApplicationScreenState extends ConsumerState<EditApplicationScreen> {
               title: const Text('Cover letter sent'),
               value: _coverLetterUsed,
               onChanged: (v) => setState(() => _coverLetterUsed = v),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _tagsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Tags (comma separated)',
+                hintText: 'remote, dream company, urgent',
+                prefixIcon: Icon(Icons.label_outline),
+              ),
             ),
             const SizedBox(height: 20),
             _FieldLabel('Work Type'),

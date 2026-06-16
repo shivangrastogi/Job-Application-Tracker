@@ -5,6 +5,9 @@ import '../../providers/applications_provider.dart';
 import '../../providers/documents_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../core/constants/enums.dart';
+import '../../core/utils/url_company.dart';
+import '../../core/utils/app_display.dart';
+import '../../models/job_application.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/resume_picker_field.dart';
 
@@ -20,8 +23,10 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
   final _companyCtrl = TextEditingController();
   final _roleCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
+  final _urlFocus = FocusNode();
   final _locationCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+  final _tagsCtrl = TextEditingController();
 
   ApplicationStatus _status = ApplicationStatus.wishlist;
   WorkType _workType = WorkType.onsite;
@@ -30,6 +35,8 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
   bool _loading = false;
   String? _resumeId;
   bool _coverLetterUsed = false;
+  bool _urlWarn = false;
+  JobApplication? _duplicateOf;
 
   double? _salaryMin;
   double? _salaryMax;
@@ -43,6 +50,31 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
         ref.read(documentsNotifierProvider.notifier).getById(defaultId) != null) {
       _resumeId = defaultId;
     }
+    // When the URL field loses focus, guess the company from the link if the
+    // user hasn't typed one yet.
+    _urlFocus.addListener(() {
+      if (!_urlFocus.hasFocus) _maybeFillCompanyFromUrl();
+    });
+  }
+
+  void _maybeFillCompanyFromUrl() {
+    // Auto-fill company from the link if the user hasn't typed one.
+    if (_companyCtrl.text.trim().isEmpty) {
+      final guess = guessCompanyFromUrl(_urlCtrl.text);
+      if (guess.isNotEmpty) _companyCtrl.text = guess;
+    }
+    // Flag (don't block) if this job URL is already tracked.
+    final normalized = normalizeUrl(_urlCtrl.text);
+    JobApplication? dupe;
+    if (normalized.isNotEmpty) {
+      for (final a in ref.read(applicationsNotifierProvider)) {
+        if (a.jobUrl != null && normalizeUrl(a.jobUrl) == normalized) {
+          dupe = a;
+          break;
+        }
+      }
+    }
+    setState(() => _duplicateOf = dupe);
   }
 
   @override
@@ -50,10 +82,18 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
     _companyCtrl.dispose();
     _roleCtrl.dispose();
     _urlCtrl.dispose();
+    _urlFocus.dispose();
     _locationCtrl.dispose();
     _notesCtrl.dispose();
+    _tagsCtrl.dispose();
     super.dispose();
   }
+
+  List<String> _parseTags() => _tagsCtrl.text
+      .split(',')
+      .map((t) => t.trim())
+      .where((t) => t.isNotEmpty)
+      .toList();
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -74,6 +114,7 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
             notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
             resumeVersionId: _resumeId,
             coverLetterUsed: _coverLetterUsed,
+            tags: _parseTags(),
           );
       if (settings.notifyFollowUp && _status.isActive) {
         await NotificationService.scheduleFollowUpNudge(
@@ -117,6 +158,7 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
             // and fill in company / role / the rest later.
             TextFormField(
               controller: _urlCtrl,
+              focusNode: _urlFocus,
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Job URL *',
@@ -124,9 +166,52 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
                 prefixIcon: Icon(Icons.link_outlined),
               ),
               keyboardType: TextInputType.url,
+              onChanged: (v) {
+                final warn = v.trim().isNotEmpty && !looksLikeUrl(v);
+                if (warn != _urlWarn) setState(() => _urlWarn = warn);
+              },
+              onEditingComplete: () {
+                _maybeFillCompanyFromUrl();
+                FocusScope.of(context).nextFocus();
+              },
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Paste the job link' : null,
             ),
+            if (_urlWarn)
+              const Padding(
+                padding: EdgeInsets.only(top: 6, left: 4),
+                child: Text(
+                  "⚠ That doesn't look like a web link — you can still save it.",
+                  style: TextStyle(fontSize: 12, color: Color(0xFFF59E0B)),
+                ),
+              ),
+            if (_duplicateOf != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Color(0xFFF59E0B), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Already tracked: ${_duplicateOf!.displayCompany} · '
+                        '${_duplicateOf!.displayRole} (${_duplicateOf!.status.label}). '
+                        'You can still add it again.',
+                        style: const TextStyle(fontSize: 12.5, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
 
             // Company (optional)
@@ -268,6 +353,17 @@ class _AddApplicationScreenState extends ConsumerState<AddApplicationScreen> {
               title: const Text('Cover letter sent'),
               value: _coverLetterUsed,
               onChanged: (v) => setState(() => _coverLetterUsed = v),
+            ),
+            const SizedBox(height: 12),
+
+            // Tags
+            TextFormField(
+              controller: _tagsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Tags (comma separated)',
+                hintText: 'remote, dream company, urgent',
+                prefixIcon: Icon(Icons.label_outline),
+              ),
             ),
             const SizedBox(height: 12),
 

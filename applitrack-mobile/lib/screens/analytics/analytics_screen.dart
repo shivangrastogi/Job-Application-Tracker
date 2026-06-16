@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/analytics_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../core/constants/enums.dart';
 import '../../core/constants/status_colors.dart';
+
+String _fmtMoney(double v, String cur) {
+  final n = (v * 10).round() / 10;
+  final s = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(1);
+  return cur == 'INR' ? '₹$s LPA' : '$s $cur';
+}
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -115,6 +122,7 @@ class AnalyticsScreen extends ConsumerWidget {
           if (summary.byResume.isNotEmpty) ...[
             _SectionTitle('Resume Performance'),
             const SizedBox(height: 12),
+            _ResumeRecommendation(resumes: summary.byResume),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -132,9 +140,69 @@ class AnalyticsScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: _ResumePerformance(
-                    resumes: summary.byCoverLetter, showLowDataNote: false),
+                    resumes: summary.byCoverLetter,
+                    showLowDataNote: false,
+                    firstColLabel: 'COVER LETTER'),
               ),
             ),
+            const SizedBox(height: 24),
+          ],
+
+          // Channel performance — which source converts best
+          if (summary.bySourcePerf.isNotEmpty) ...[
+            _SectionTitle('Channel Performance'),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _ResumePerformance(
+                  resumes: summary.bySourcePerf,
+                  firstColLabel: 'SOURCE',
+                  noteText:
+                      'Where your applications convert best. Pair with resume performance to see which resume works on each channel.',
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Salary insights
+          if (summary.salary != null) ...[
+            _SectionTitle('Salary Insights'),
+            const SizedBox(height: 12),
+            Builder(builder: (context) {
+              final s = summary.salary!;
+              String m(double v) => _fmtMoney(v, s.currency);
+              return Column(
+                children: [
+                  Row(children: [
+                    _MetricCard(label: 'Median', value: m(s.median), color: const Color(0xFF3B82F6)),
+                    const SizedBox(width: 12),
+                    _MetricCard(label: 'Average', value: m(s.average), color: const Color(0xFF8B5CF6)),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _MetricCard(label: 'Lowest', value: m(s.lo), color: const Color(0xFF6B7280)),
+                    const SizedBox(width: 12),
+                    _MetricCard(
+                        label: s.offeredAvg != null ? 'Avg of offers' : 'Highest',
+                        value: s.offeredAvg != null ? m(s.offeredAvg!) : m(s.hi),
+                        color: const Color(0xFF22C55E)),
+                  ]),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'From ${s.count} application${s.count == 1 ? '' : 's'} with salary data'
+                      '${s.offeredCount > 0 ? ' · ${s.offeredCount} offer${s.offeredCount == 1 ? '' : 's'}' : ''}.',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurface.withValues(alpha: 0.4)),
+                    ),
+                  ),
+                ],
+              );
+            }),
             const SizedBox(height: 24),
           ],
 
@@ -559,7 +627,14 @@ class _SourcePieChartState extends State<_SourcePieChart> {
 class _ResumePerformance extends StatelessWidget {
   final List<ResumeStat> resumes;
   final bool showLowDataNote;
-  const _ResumePerformance({required this.resumes, this.showLowDataNote = true});
+  final String firstColLabel;
+  final String? noteText;
+  const _ResumePerformance({
+    required this.resumes,
+    this.showLowDataNote = true,
+    this.firstColLabel = 'RESUME',
+    this.noteText,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -574,7 +649,7 @@ class _ResumePerformance extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(flex: 4, child: Text('RESUME', style: headStyle)),
+            Expanded(flex: 4, child: Text(firstColLabel, style: headStyle)),
             Expanded(child: Text('SENT', style: headStyle, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text('RESP', style: headStyle, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text('INTV', style: headStyle, textAlign: TextAlign.center)),
@@ -634,14 +709,101 @@ class _ResumePerformance extends StatelessWidget {
             )),
         const SizedBox(height: 2),
         Text(
-          showLowDataNote
-              ? 'Share of sent applications (excludes wishlist). Resumes under '
-                  '$kMinResumeSample applications are marked low data.'
-              : 'Share of sent applications (excludes wishlist).',
+          noteText ??
+              (showLowDataNote
+                  ? 'Share of sent applications (excludes wishlist). Resumes under '
+                      '$kMinResumeSample applications are marked low data.'
+                  : 'Share of sent applications (excludes wishlist).'),
           style: TextStyle(
               fontSize: 11, color: cs.onSurface.withValues(alpha: 0.4)),
         ),
       ],
+    );
+  }
+}
+
+/// Actionable nudge: when the best resume beats the worst on interview rate by
+/// a meaningful margin, suggest leading with it and offer to set it as default.
+class _ResumeRecommendation extends ConsumerWidget {
+  final List<ResumeStat> resumes;
+  const _ResumeRecommendation({required this.resumes});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eligible = resumes
+        .where((r) => !r.lowData && r.id != '__none__')
+        .toList()
+      ..sort((a, b) => b.interviewRate.compareTo(a.interviewRate));
+    if (eligible.length < 2) return const SizedBox.shrink();
+    final best = eligible.first;
+    final worst = eligible.last;
+    if (best.interviewRate - worst.interviewRate < 0.10) {
+      return const SizedBox.shrink();
+    }
+    final factor = worst.interviewRate > 0
+        ? '${(best.interviewRate / worst.interviewRate).toStringAsFixed(1)}×'
+        : null;
+    final defaultId = ref.watch(settingsNotifierProvider).defaultResumeId;
+    final isDefault = best.id == defaultId;
+    const green = Color(0xFF22C55E);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: green.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: green.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('💡 ', style: TextStyle(fontSize: 15)),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: [
+                    TextSpan(
+                        text: best.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    TextSpan(
+                        text:
+                            ' lands interviews at ${(best.interviewRate * 100).round()}%'
+                            '${factor != null ? ', $factor better than ' : ', vs '}'),
+                    TextSpan(
+                        text: worst.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    TextSpan(
+                        text:
+                            ' (${(worst.interviewRate * 100).round()}%). Lead with it.'),
+                  ]),
+                  style: const TextStyle(fontSize: 13, height: 1.35),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: isDefault
+                ? const Text('Default ✓',
+                    style: TextStyle(
+                        color: green,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12))
+                : TextButton(
+                    onPressed: () => ref
+                        .read(settingsNotifierProvider.notifier)
+                        .setDefaultResumeId(best.id),
+                    style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact),
+                    child: const Text('Set as default'),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
